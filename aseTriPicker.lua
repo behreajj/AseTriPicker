@@ -1,5 +1,4 @@
 local defaults <const> = {
-    -- TODO: Implicitly support alpha.
     -- TODO: Change hex readout to a text input box so copy & paste possible.
     wCanvas = 200,
     hCanvas = 200,
@@ -10,6 +9,7 @@ local defaults <const> = {
     hue = 0.0,
     sat = 1.0,
     val = 1.0,
+    alpha = 1.0,
     retEps = 0.01625,
     textDisplayLimit = 50,
     swatchSize = 16,
@@ -19,12 +19,17 @@ local defaults <const> = {
 local active <const> = {
     wCanvas = defaults.wCanvas,
     hCanvas = defaults.hCanvas,
+
     hueFore = defaults.hue,
     satFore = defaults.sat,
     valFore = defaults.val,
+    alphaFore = defaults.alpha,
+
     hueBack = defaults.hue,
     satBack = defaults.sat,
     valBack = defaults.val,
+    alphaBack = defaults.alpha,
+
     fgBgFlag = 0,
     mouseDownRing = false,
     mouseDownTri = false,
@@ -110,12 +115,14 @@ active.hueFore, active.satFore, active.valFore = rgbToHsb(
     initFgColor.red / 255.0,
     initFgColor.green / 255.0,
     initFgColor.blue / 255.0)
+active.alphaFore = initFgColor.alpha / 255.0
 
 local initBgColor <const> = Color(app.bgColor)
 active.hueBack, active.satBack, active.valBack = rgbToHsb(
     initBgColor.red / 255.0,
     initBgColor.green / 255.0,
     initBgColor.blue / 255.0)
+active.alphaBack = initBgColor.alpha / 255.0
 
 local dlg = Dialog { title = "Color Picker" }
 
@@ -134,7 +141,7 @@ dlg:canvas {
                     hue = active.hueBack * 360.0,
                     saturation = active.satBack,
                     value = active.valBack,
-                    alpha = 255
+                    alpha = math.floor(active.alphaBack * 255.0 + 0.5)
                 }
                 app.command.SwitchColors()
             else
@@ -144,7 +151,7 @@ dlg:canvas {
                     hue = active.hueFore * 360.0,
                     saturation = active.satFore,
                     value = active.valFore,
-                    alpha = 255
+                    alpha = math.floor(active.alphaFore * 255.0 + 0.5)
                 }
             end
             dlg:repaint()
@@ -157,7 +164,7 @@ dlg:canvas {
                     hue = active.hueBack * 360.0,
                     saturation = active.satBack,
                     value = active.valBack,
-                    alpha = 255
+                    alpha = math.floor(active.alphaBack * 255.0 + 0.5)
                 }
                 app.command.SwitchColors()
             else
@@ -167,9 +174,26 @@ dlg:canvas {
                     hue = active.hueFore * 360.0,
                     saturation = active.satFore,
                     value = active.valFore,
-                    alpha = 255
+                    alpha = math.floor(active.alphaFore * 255.0 + 0.5)
                 }
             end
+            dlg:repaint()
+        elseif event.shiftKey and event.code == "KeyX" then
+            local hTemp <const> = active.hueBack
+            local sTemp <const> = active.satBack
+            local vTemp <const> = active.valBack
+            local aTemp <const> = active.alphaBack
+
+            active.hueBack = active.hueFore
+            active.satBack = active.satFore
+            active.valBack = active.valFore
+            active.alphaBack = active.alphaFore
+
+            active.hueFore = hTemp
+            active.satFore = sTemp
+            active.valFore = vTemp
+            active.alphaFo = aTemp
+
             dlg:repaint()
         end
     end,
@@ -241,7 +265,7 @@ dlg:canvas {
                         hue = active.hueBack * 360.0,
                         saturation = active.satBack,
                         value = active.valBack,
-                        alpha = 255
+                        alpha = math.floor(active.alphaBack * 255.0 + 0.5)
                     }
                     app.command.SwitchColors()
                 else
@@ -250,7 +274,7 @@ dlg:canvas {
                         hue = active.hueFore * 360.0,
                         saturation = active.satFore,
                         value = active.valFore,
-                        alpha = 255
+                        alpha = math.floor(active.alphaFore * 255.0 + 0.5)
                     }
                 end
                 dlg:repaint()
@@ -315,7 +339,7 @@ dlg:canvas {
                         hue = hActive * 360.0,
                         saturation = s,
                         value = v,
-                        alpha = 255
+                        alpha = math.floor(active.alphaBack * 255.0 + 0.5)
                     }
                     app.command.SwitchColors()
                 else
@@ -325,7 +349,7 @@ dlg:canvas {
                         hue = hActive * 360.0,
                         saturation = s,
                         value = v,
-                        alpha = 255
+                        alpha = math.floor(active.alphaFore * 255.0 + 0.5)
                     }
                 end
                 dlg:repaint()
@@ -555,6 +579,7 @@ dlg:button {
             fgColor.red / 255.0,
             fgColor.green / 255.0,
             fgColor.blue / 255.0)
+        active.alphaFore = fgColor.alpha / 255.0
         dlg:repaint()
     end
 }
@@ -564,12 +589,13 @@ dlg:button {
     text = "&BACK",
     onclick = function()
         app.command.SwitchColors()
-        local fgColor <const> = app.fgColor
+        local bgColor <const> = app.fgColor
         app.command.SwitchColors()
         active.hueBack, active.satBack, active.valBack = rgbToHsb(
-            fgColor.red / 255.0,
-            fgColor.green / 255.0,
-            fgColor.blue / 255.0)
+            bgColor.red / 255.0,
+            bgColor.green / 255.0,
+            bgColor.blue / 255.0)
+        active.alphaBack = bgColor.alpha / 255.0
         dlg:repaint()
     end
 }
