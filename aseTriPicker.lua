@@ -1,5 +1,4 @@
 local defaults <const> = {
-    -- TODO: Change hex readout to a text input box so copy & paste possible.
     wCanvas = 200,
     hCanvas = 200,
     xCenter = 100,
@@ -516,32 +515,37 @@ dlg:canvas {
         imgSpec.colorSpace = ColorSpace { sRGB = true }
         local img <const> = Image(imgSpec)
         img.bytes = table.concat(byteStrs)
-
         ctx:drawImage(img,
             Rectangle(0, 0, wCanvas, hCanvas),
             Rectangle(0, 0, wCanvas, hCanvas))
 
         local swatchSize <const> = defaults.swatchSize
         local offset <const> = swatchSize // 2
-        ctx.color = Color {
+
+        local backColor <const> = Color {
             hue = active.hueBack * 360.0,
             saturation = active.satBack,
             value = active.valBack,
             alpha = 255
         }
+        ctx.color = backColor
         ctx:fillRect(Rectangle(
             offset, hCanvas - swatchSize - 1,
             swatchSize, swatchSize))
 
-        ctx.color = Color {
+        local foreColor <const> = Color {
             hue = active.hueFore * 360.0,
             saturation = active.satFore,
             value = active.valFore,
             alpha = 255
         }
+        ctx.color = foreColor
         ctx:fillRect(Rectangle(
             0, hCanvas - swatchSize - 1 - offset,
             swatchSize, swatchSize))
+
+        local rf <const>, gf <const>, bf <const> = hsvToRgb(
+            hActive, sActive, vActive)
 
         if (wCanvas - hCanvas) > defaults.textDisplayLimit
             and rCanvas > swatchSize * 2 then
@@ -549,15 +553,16 @@ dlg:canvas {
             local yIncr <const> = textSize.height + 4
 
             ctx.color = app.theme.color.text
-            ctx:fillText(string.format(
-                "H: %.2f", hActive * 360.0), 2, 2 + yIncr * 0)
+            if sActive > 0.0 and vActive > 0.0 then
+                ctx:fillText(string.format(
+                    "H: %.2f", hActive * 360.0), 2, 2 + yIncr * 0)
+            else
+                ctx:fillText("H: ---", 2, 2 + yIncr * 0)
+            end
             ctx:fillText(string.format(
                 "S: %.2f%%", sActive * 100.0), 2, 2 + yIncr * 1)
             ctx:fillText(string.format(
                 "V: %.2f%%", vActive * 100.0), 2, 2 + yIncr * 2)
-
-            local rf <const>, gf <const>, bf <const> = hsvToRgb(
-                hActive, sActive, vActive)
 
             ctx:fillText(string.format(
                 "R: %.2f%%", rf * 100.0), 2, 2 + yIncr * 4)
@@ -565,28 +570,61 @@ dlg:canvas {
                 "G: %.2f%%", gf * 100.0), 2, 2 + yIncr * 5)
             ctx:fillText(string.format(
                 "B: %.2f%%", bf * 100.0), 2, 2 + yIncr * 6)
-
-            local r8 <const> = floor(rf * 255.0 + 0.5)
-            local g8 <const> = floor(gf * 255.0 + 0.5)
-            local b8 <const> = floor(bf * 255.0 + 0.5)
-
-            ctx:fillText(string.format("#%06x",
-                r8 << 0x10|g8 << 0x08|b8), 2, 2 + yIncr * 8)
         end
+
+        local r8 <const> = floor(rf * 255.0 + 0.5)
+        local g8 <const> = floor(gf * 255.0 + 0.5)
+        local b8 <const> = floor(bf * 255.0 + 0.5)
+
+        dlg:modify { id = "hexCode", text = string.format("%06x",
+            r8 << 0x10|g8 << 0x08|b8) }
     end,
+}
+
+dlg:entry {
+    id = "hexCode",
+    focus = false,
+    onchange = function()
+        local args <const> = dlg.data
+        local hexStr <const> = args.hexCode --[[@as string]]
+        if #hexStr >= 6 then
+            local hexRgb <const> = tonumber(hexStr, 16)
+            if hexRgb then
+                local r8 <const> = hexRgb >> 0x10 & 0xff
+                local g8 <const> = hexRgb >> 0x08 & 0xff
+                local b8 <const> = hexRgb & 0xff
+
+                local rf <const> = r8 / 255.0
+                local gf <const> = g8 / 255.0
+                local bf <const> = b8 / 255.0
+
+                if active.fgBgFlag == 1 then
+                    active.hueBack, active.satBack, active.valBack = rgbToHsv(
+                        rf, gf, bf)
+                    active.alphaBack = 1.0
+                else
+                    active.hueFore, active.satFore, active.valFore = rgbToHsv(
+                        rf, gf, bf)
+                    active.alphaFore = 1.0
+                end
+            end
+            dlg:repaint()
+        end
+    end
 }
 
 dlg:button {
     id = "getForeButton",
-    label = "Get:",
     text = "&FORE",
     onclick = function()
         local fgColor <const> = app.fgColor
+        local r8 <const> = fgColor.red
+        local g8 <const> = fgColor.green
+        local b8 <const> = fgColor.blue
+        local t8 <const> = fgColor.alpha
         active.hueFore, active.satFore, active.valFore = rgbToHsv(
-            fgColor.red / 255.0,
-            fgColor.green / 255.0,
-            fgColor.blue / 255.0)
-        active.alphaFore = fgColor.alpha / 255.0
+            r8 / 255.0, g8 / 255.0, b8 / 255.0)
+        active.alphaFore = t8 / 255.0
         dlg:repaint()
     end
 }
@@ -597,12 +635,14 @@ dlg:button {
     onclick = function()
         app.command.SwitchColors()
         local bgColor <const> = app.fgColor
+        local r8 <const> = bgColor.red
+        local g8 <const> = bgColor.green
+        local b8 <const> = bgColor.blue
+        local t8 <const> = bgColor.alpha
         app.command.SwitchColors()
         active.hueBack, active.satBack, active.valBack = rgbToHsv(
-            bgColor.red / 255.0,
-            bgColor.green / 255.0,
-            bgColor.blue / 255.0)
-        active.alphaBack = bgColor.alpha / 255.0
+            r8 / 255.0, g8 / 255.0, b8 / 255.0)
+        active.alphaBack = t8 / 255.0
         dlg:repaint()
     end
 }
