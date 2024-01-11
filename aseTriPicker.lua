@@ -1,6 +1,5 @@
 local defaults <const> = {
     -- TODO: Change hex readout to a text input box so copy & paste possible.
-    -- TODO: You'll have to switch to HSL, half the tone square is not covered.
     wCanvas = 200,
     hCanvas = 200,
     xCenter = 100,
@@ -15,6 +14,10 @@ local defaults <const> = {
     textDisplayLimit = 50,
     swatchSize = 16,
     lrKeyIncr = 1.0 / 1080.0,
+    -- Black saturation should ideally
+    -- be based on the distance from
+    -- the other two poles.
+    blackSat = 0.5
 }
 
 local active <const> = {
@@ -396,10 +399,11 @@ dlg:canvas {
             elseif active.mouseDownTri then
                 local ringInEdge <const> = defaults.ringInEdge
                 local angOffset <const> = defaults.angOffset
+                local blackSat <const> = defaults.blackSat
                 local tau <const> = math.pi * 2.0
                 local sqrt3_2 <const> = 0.86602540378444
 
-                local hActive = 0
+                local hActive = 0.0
                 if active.fgBgFlag == 1 then
                     hActive = active.hueBack
                 else
@@ -444,8 +448,13 @@ dlg:canvas {
                     1.0 - w1 - w2,
                     0.0), 1.0)
 
-                local s <const> = 1.0 - w2
-                local v <const> = 1.0 - w3
+                local wSum <const> = w1 + w2 + w3
+                local wSumInv <const> = wSum ~= 0.0 and 1.0 / wSum or 0.0
+                -- w2 is white, w3 is black.
+                -- Black saturation is undefined in HSV.
+                local s <const> = (w1 + w3 * blackSat) * wSumInv
+                local v <const> = (w1 + w2) * wSumInv
+
                 if active.fgBgFlag == 1 then
                     active.satBack = s
                     active.valBack = v
@@ -473,6 +482,7 @@ dlg:canvas {
     end,
     onpaint = function(event)
         local ringInEdge <const> = defaults.ringInEdge
+        local blackSat <const> = defaults.blackSat
         local sqRie <const> = ringInEdge * ringInEdge
         local angOffset <const> = defaults.angOffset
         local retEps <const> = defaults.retEps
@@ -585,8 +595,12 @@ dlg:canvas {
                 if w1 >= 0.0 and w1 <= 1.0
                     and w2 >= 0.0 and w2 <= 1.0
                     and w3 >= 0.0 and w3 <= 1.0 then
-                    local s <const> = 1.0 - w2
-                    local v <const> = 1.0 - w3
+                    local wSum <const> = w1 + w2 + w3
+                    local wSumInv <const> = wSum ~= 0.0 and 1.0 / wSum or 0.0
+                    -- w2 is white, w3 is black.
+                    -- Black saturation is undefined in HSV.
+                    local s <const> = (w1 + w3 * blackSat) * wSumInv
+                    local v <const> = (w1 + w2) * wSumInv
 
                     if abs(s - sActive) < retEps and
                         abs(v - vActive) < retEps then
