@@ -1,5 +1,6 @@
 local defaults <const> = {
     -- TODO: Change hex readout to a text input box so copy & paste possible.
+    -- TODO: You'll have to switch to HSL, half the tone square is not covered.
     wCanvas = 200,
     hCanvas = 200,
     xCenter = 100,
@@ -37,11 +38,72 @@ local active <const> = {
 
 ---@param hue number
 ---@param sat number
+---@param lgt number
+---@return number r
+---@return number g
+---@return number b
+local function hslToRgb(hue, sat, lgt)
+    local h <const> = hue
+    local s <const> = sat
+    local l <const> = lgt
+
+    if l <= 0.0 then
+        return 0.0, 0.0, 0.0
+    end
+
+    if l >= 1.0 then
+        return 1.0, 1.0, 1.0
+    end
+
+    if s <= 0.0 then
+        return l, l, l
+    end
+
+    local q = l + s - l * s
+    if l < 0.5 then q = l * (1.0 + s) end
+    local p <const> = l + l - q
+    local qnp6 <const> = (q - p) * 6.0
+
+    local r = p
+    local rHue = (h + 0.3333333333333333) % 1.0
+    if rHue < 0.16666666666666667 then
+        r = p + qnp6 * rHue
+    elseif rHue < 0.5 then
+        r = q
+    elseif rHue < 0.6666666666666667 then
+        r = p + qnp6 * (0.6666666666666667 - rHue)
+    end
+
+    local g = p
+    local gHue = h % 1.0
+    if gHue < 0.16666666666666667 then
+        g = p + qnp6 * gHue
+    elseif gHue < 0.5 then
+        g = q
+    elseif gHue < 0.6666666666666667 then
+        g = p + qnp6 * (0.6666666666666667 - gHue)
+    end
+
+    local b = p
+    local bHue = (h - 0.3333333333333333) % 1.0
+    if bHue < 0.16666666666666667 then
+        b = p + qnp6 * bHue
+    elseif bHue < 0.5 then
+        b = q
+    elseif bHue < 0.6666666666666667 then
+        b = p + qnp6 * (0.6666666666666667 - bHue)
+    end
+
+    return r, g, b
+end
+
+---@param hue number
+---@param sat number
 ---@param val number
----@return number
----@return number
----@return number
-local function hsbToRgb(hue, sat, val)
+---@return number r
+---@return number g
+---@return number b
+local function hsvToRgb(hue, sat, val)
     local h <const> = (hue % 1.0) * 6.0
     local s <const> = sat
     local v <const> = val
@@ -72,10 +134,63 @@ end
 ---@param red number
 ---@param green number
 ---@param blue number
----@return number
----@return number
----@return number
-local function rgbToHsb(red, green, blue)
+---@return number h
+---@return number s
+---@return number v
+local function rgbToHsl(red, green, blue)
+    local gbmx = blue
+    if green > blue then gbmx = green end
+    local gbmn = blue
+    if green < blue then gbmn = green end
+
+    local mx = red
+    if gbmx > red then mx = gbmx end
+    local mn = red
+    if gbmn < red then mn = gbmn end
+
+    local sum = mx + mn
+    local diff = mx - mn
+    local light = 0.5 * sum
+
+    if light <= 0.0 then
+        -- Black.
+        return 0.0, 0.0, 0.0
+    elseif light >= 1.0 then
+        -- White.
+        return 0.0, 0.0, 1.0
+    elseif diff <= 0.0 then
+        -- Gray.
+        return 0.0, 0.0, light
+    else
+        local hue = 0.0
+        if red == mx then
+            hue = (green - blue) / diff
+            if green < blue then hue = hue + 6.0 end
+        elseif green == mx then
+            hue = 2.0 + (blue - red) / diff
+        else
+            hue = 4.0 + (red - green) / diff
+        end
+        hue = hue / 6.0
+
+        local sat = 0.0
+        if light > 0.5 then
+            sat = diff / (2.0 - sum)
+        else
+            sat = diff / sum
+        end
+
+        return hue, sat, light
+    end
+end
+
+---@param red number
+---@param green number
+---@param blue number
+---@return number h
+---@return number s
+---@return number v
+local function rgbToHsv(red, green, blue)
     local r <const> = red
     local g <const> = green
     local b <const> = blue
@@ -84,14 +199,14 @@ local function rgbToHsb(red, green, blue)
     local gbmn <const> = math.min(g, b)
     local mx <const> = math.max(r, gbmx)
 
-    if mx < 0.003922 then return 0.0, 0.0, 0.0 end
+    if mx <= 0.0 then return 0.0, 0.0, 0.0 end
 
     local mn <const> = math.min(r, gbmn)
     local diff <const> = mx - mn
 
-    if diff < 0.003922 then
+    if diff <= 0.0 then
         local light <const> = (mx + mn) * 0.5
-        if light > 0.960784 then
+        if light >= 1.0 then
             return 0.0, 0.0, 1.0
         end
         return 0.0, 0.0, mx
@@ -111,14 +226,14 @@ local function rgbToHsb(red, green, blue)
 end
 
 local initFgColor <const> = Color(app.fgColor)
-active.hueFore, active.satFore, active.valFore = rgbToHsb(
+active.hueFore, active.satFore, active.valFore = rgbToHsv(
     initFgColor.red / 255.0,
     initFgColor.green / 255.0,
     initFgColor.blue / 255.0)
 active.alphaFore = initFgColor.alpha / 255.0
 
 local initBgColor <const> = Color(app.bgColor)
-active.hueBack, active.satBack, active.valBack = rgbToHsb(
+active.hueBack, active.satBack, active.valBack = rgbToHsv(
     initBgColor.red / 255.0,
     initBgColor.green / 255.0,
     initBgColor.blue / 255.0)
@@ -412,6 +527,7 @@ dlg:canvas {
 
         -- For calculation of barycentric coordinates.
         -- Cf. https://codeplea.com/triangular-interpolation
+        -- Cf. https://gitlab.gnome.org/GNOME/gimp/-/blob/master/modules/gimpcolorwheel.c#L970
         local yDiff2_3 <const> = yTri2 - yTri3
         local xDiff1_3 <const> = xTri1 - xTri3
         local xDiff3_2 <const> = xTri3 - xTri2
@@ -452,7 +568,7 @@ dlg:canvas {
                 local angSigned <const> = angOffset + atan(yNorm, xNorm)
                 local hueWheel <const> = angSigned / tau
 
-                local rf <const>, gf <const>, bf <const> = hsbToRgb(hueWheel, 1.0, 1.0)
+                local rf <const>, gf <const>, bf <const> = hsvToRgb(hueWheel, 1.0, 1.0)
                 r8 = floor(rf * 255.0 + 0.5)
                 g8 = floor(gf * 255.0 + 0.5)
                 b8 = floor(bf * 255.0 + 0.5)
@@ -485,7 +601,7 @@ dlg:canvas {
                         end
                         a8 = 255
                     else
-                        local rf <const>, gf <const>, bf <const> = hsbToRgb(hActive, s, v)
+                        local rf <const>, gf <const>, bf <const> = hsvToRgb(hActive, s, v)
                         r8 = floor(rf * 255.0 + 0.5)
                         g8 = floor(gf * 255.0 + 0.5)
                         b8 = floor(bf * 255.0 + 0.5)
@@ -549,7 +665,7 @@ dlg:canvas {
             ctx:fillText(string.format(
                 "V: %.2f%%", vActive * 100.0), 2, 2 + yIncr * 2)
 
-            local rf <const>, gf <const>, bf <const> = hsbToRgb(
+            local rf <const>, gf <const>, bf <const> = hsvToRgb(
                 hActive, sActive, vActive)
 
             ctx:fillText(string.format(
@@ -575,7 +691,7 @@ dlg:button {
     text = "&FORE",
     onclick = function()
         local fgColor <const> = app.fgColor
-        active.hueFore, active.satFore, active.valFore = rgbToHsb(
+        active.hueFore, active.satFore, active.valFore = rgbToHsv(
             fgColor.red / 255.0,
             fgColor.green / 255.0,
             fgColor.blue / 255.0)
@@ -591,7 +707,7 @@ dlg:button {
         app.command.SwitchColors()
         local bgColor <const> = app.fgColor
         app.command.SwitchColors()
-        active.hueBack, active.satBack, active.valBack = rgbToHsb(
+        active.hueBack, active.satBack, active.valBack = rgbToHsv(
             bgColor.red / 255.0,
             bgColor.green / 255.0,
             bgColor.blue / 255.0)
