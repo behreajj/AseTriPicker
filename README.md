@@ -1,6 +1,6 @@
 # Aseprite Triangle Color Picker
 
-![Screen Cap](screenCap.png)
+![Screen Cap](screenCap0.png)
 
 This is a triangle color picker made with the [Aseprite](https://www.aseprite.org/) [scripting API](https://www.aseprite.org/docs/scripting/). It is intended for use with Aseprite version 1.3 or newer.
 
@@ -15,6 +15,16 @@ To use this script, open Aseprite. In the menu bar, go to `File > Scripts > Open
 If an error message in Aseprite's console appears, check if the script folder is on a file path that includes characters beyond [UTF-8](https://en.wikipedia.org/wiki/UTF-8), such as 'é' (e acute) or 'ö' (o umlaut).
 
 A hot key can be assigned to the script by going to `Edit > Keyboard Shortcuts`. The search input box in the top left of the shortcuts dialog can be used to locate the script by its file name. The dialog can be closed with `Alt+X`. The foreground color can be retrieved with `Alt+F`; the background color, with `Alt+B`.
+
+Right click will adjust the background color. When the canvas has focus, the left and right arrows will adjust the hue by a small increment.
+
+![Expanded Screen Cap](screenCap1.png)
+
+When the picker is wider than it is high, it will show text information about the color. Hue is expressed in degrees; other color data is expressed in percentages.
+
+![GIMP Comparison](gimpComparison.png)
+
+The triangle portion of this picker is different than in other software. It takes a triangular selection of a shade square, rather than stretching and compressing the square to fit into a triangle. The selection it takes can be adjusted in code by changing the saturation of the triangle's black color. (In HSV, black's saturation is undefined.) The disadvantage of this approach is that desaturated hues and grays cannot be properly expressed; the advantage is that the finite space within the triangle does not look so cramped. For comparison, see the GIMP color picker above.
 
 ## Modification
 
