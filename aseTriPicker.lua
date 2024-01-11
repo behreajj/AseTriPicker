@@ -4,7 +4,7 @@ local defaults <const> = {
     hCanvas = 200,
     xCenter = 100,
     yCenter = 100,
-    ringInEdge = 0.875,
+    ringInEdge = 0.9,
     angOffset = 0.5235987755983,
     hue = 0.0,
     sat = 1.0,
@@ -14,10 +14,11 @@ local defaults <const> = {
     textDisplayLimit = 50,
     swatchSize = 16,
     lrKeyIncr = 1.0 / 1080.0,
-    -- Black saturation should ideally
-    -- be based on the distance from
-    -- the other two poles.
-    blackSat = 0.5
+    -- Black saturation should ideally be based on the
+    -- distance from the other two poles. Maybe make the
+    -- ring go from 0 to 100 saturation per inner to
+    -- outer edge, then base the triangle on that?
+    kSat = 1.0
 }
 
 local active <const> = {
@@ -34,88 +35,26 @@ local active <const> = {
     valBack = defaults.val,
     alphaBack = defaults.alpha,
 
+    kSat = defaults.kSat,
+
     fgBgFlag = 0,
     mouseDownRing = false,
     mouseDownTri = false,
 }
 
----@param hue number
----@param sat number
----@param lgt number
+---@param h number
+---@param s number
+---@param v number
 ---@return number r
 ---@return number g
 ---@return number b
-local function hslToRgb(hue, sat, lgt)
-    local h <const> = hue
-    local s <const> = sat
-    local l <const> = lgt
+local function hsvToRgb(h, s, v)
+    local h6 <const> = h * 6.0
 
-    if l <= 0.0 then
-        return 0.0, 0.0, 0.0
-    end
-
-    if l >= 1.0 then
-        return 1.0, 1.0, 1.0
-    end
-
-    if s <= 0.0 then
-        return l, l, l
-    end
-
-    local q = l + s - l * s
-    if l < 0.5 then q = l * (1.0 + s) end
-    local p <const> = l + l - q
-    local qnp6 <const> = (q - p) * 6.0
-
-    local r = p
-    local rHue = (h + 0.3333333333333333) % 1.0
-    if rHue < 0.16666666666666667 then
-        r = p + qnp6 * rHue
-    elseif rHue < 0.5 then
-        r = q
-    elseif rHue < 0.6666666666666667 then
-        r = p + qnp6 * (0.6666666666666667 - rHue)
-    end
-
-    local g = p
-    local gHue = h % 1.0
-    if gHue < 0.16666666666666667 then
-        g = p + qnp6 * gHue
-    elseif gHue < 0.5 then
-        g = q
-    elseif gHue < 0.6666666666666667 then
-        g = p + qnp6 * (0.6666666666666667 - gHue)
-    end
-
-    local b = p
-    local bHue = (h - 0.3333333333333333) % 1.0
-    if bHue < 0.16666666666666667 then
-        b = p + qnp6 * bHue
-    elseif bHue < 0.5 then
-        b = q
-    elseif bHue < 0.6666666666666667 then
-        b = p + qnp6 * (0.6666666666666667 - bHue)
-    end
-
-    return r, g, b
-end
-
----@param hue number
----@param sat number
----@param val number
----@return number r
----@return number g
----@return number b
-local function hsvToRgb(hue, sat, val)
-    local h <const> = (hue % 1.0) * 6.0
-    local s <const> = sat
-    local v <const> = val
-
-    local sector <const> = math.floor(h)
-    local secf <const> = sector + 0.0
+    local sector <const> = math.floor(h6)
     local tint1 <const> = v * (1.0 - s)
-    local tint2 <const> = v * (1.0 - s * (h - secf))
-    local tint3 <const> = v * (1.0 - s * (1.0 + secf - h))
+    local tint2 <const> = v * (1.0 - s * (h6 - sector))
+    local tint3 <const> = v * (1.0 - s * (1.0 + sector - h6))
 
     if sector == 0 then
         return v, tint3, tint1
@@ -134,70 +73,13 @@ local function hsvToRgb(hue, sat, val)
     return 0.0, 0.0, 0.0
 end
 
----@param red number
----@param green number
----@param blue number
+---@param r number
+---@param g number
+---@param b number
 ---@return number h
 ---@return number s
 ---@return number v
-local function rgbToHsl(red, green, blue)
-    local gbmx = blue
-    if green > blue then gbmx = green end
-    local gbmn = blue
-    if green < blue then gbmn = green end
-
-    local mx = red
-    if gbmx > red then mx = gbmx end
-    local mn = red
-    if gbmn < red then mn = gbmn end
-
-    local sum = mx + mn
-    local diff = mx - mn
-    local light = 0.5 * sum
-
-    if light <= 0.0 then
-        -- Black.
-        return 0.0, 0.0, 0.0
-    elseif light >= 1.0 then
-        -- White.
-        return 0.0, 0.0, 1.0
-    elseif diff <= 0.0 then
-        -- Gray.
-        return 0.0, 0.0, light
-    else
-        local hue = 0.0
-        if red == mx then
-            hue = (green - blue) / diff
-            if green < blue then hue = hue + 6.0 end
-        elseif green == mx then
-            hue = 2.0 + (blue - red) / diff
-        else
-            hue = 4.0 + (red - green) / diff
-        end
-        hue = hue / 6.0
-
-        local sat = 0.0
-        if light > 0.5 then
-            sat = diff / (2.0 - sum)
-        else
-            sat = diff / sum
-        end
-
-        return hue, sat, light
-    end
-end
-
----@param red number
----@param green number
----@param blue number
----@return number h
----@return number s
----@return number v
-local function rgbToHsv(red, green, blue)
-    local r <const> = red
-    local g <const> = green
-    local b <const> = blue
-
+local function rgbToHsv(r, g, b)
     local gbmx <const> = math.max(g, b)
     local gbmn <const> = math.min(g, b)
     local mx <const> = math.max(r, gbmx)
@@ -399,7 +281,7 @@ dlg:canvas {
             elseif active.mouseDownTri then
                 local ringInEdge <const> = defaults.ringInEdge
                 local angOffset <const> = defaults.angOffset
-                local blackSat <const> = defaults.blackSat
+                local kSat <const> = active.kSat
                 local tau <const> = math.pi * 2.0
                 local sqrt3_2 <const> = 0.86602540378444
 
@@ -452,7 +334,7 @@ dlg:canvas {
                 local wSumInv <const> = wSum ~= 0.0 and 1.0 / wSum or 0.0
                 -- w2 is white, w3 is black.
                 -- Black saturation is undefined in HSV.
-                local s <const> = (w1 + w3 * blackSat) * wSumInv
+                local s <const> = (w1 + w3 * kSat) * wSumInv
                 local v <const> = (w1 + w2) * wSumInv
 
                 if active.fgBgFlag == 1 then
@@ -482,7 +364,7 @@ dlg:canvas {
     end,
     onpaint = function(event)
         local ringInEdge <const> = defaults.ringInEdge
-        local blackSat <const> = defaults.blackSat
+        local kSat <const> = active.kSat
         local sqRie <const> = ringInEdge * ringInEdge
         local angOffset <const> = defaults.angOffset
         local retEps <const> = defaults.retEps
@@ -568,23 +450,20 @@ dlg:canvas {
 
             local sqMag <const> = xNorm * xNorm + yNorm * yNorm
 
-            local r8 = 0
-            local g8 = 0
-            local b8 = 0
-            local a8 = 0
-
             local byteStr = packZero
             if sqMag >= sqRie and sqMag <= 1.0 then
+                -- For active.kSat if that becomes necessary:
+                -- local s <const> = (sqMag - sqRie) / (1.0 - sqRie)
+                -- local v <const> = 0.5 + s * 0.5
                 local angSigned <const> = angOffset + atan(yNorm, xNorm)
-                local hueWheel <const> = angSigned / tau
+                local hueWheel <const> = (angSigned % tau) / tau
 
                 local rf <const>, gf <const>, bf <const> = hsvToRgb(hueWheel, 1.0, 1.0)
-                r8 = floor(rf * 255.0 + 0.5)
-                g8 = floor(gf * 255.0 + 0.5)
-                b8 = floor(bf * 255.0 + 0.5)
-                a8 = 255
+                local r8 <const> = floor(rf * 255.0 + 0.5)
+                local g8 <const> = floor(gf * 255.0 + 0.5)
+                local b8 <const> = floor(bf * 255.0 + 0.5)
 
-                byteStr = strpack("B B B B", r8, g8, b8, a8)
+                byteStr = strpack("B B B B", r8, g8, b8, 255)
             elseif sqMag < sqRie then
                 local xbw <const> = xNorm - xTri3
                 local ybw <const> = yNorm - yTri3
@@ -599,8 +478,12 @@ dlg:canvas {
                     local wSumInv <const> = wSum ~= 0.0 and 1.0 / wSum or 0.0
                     -- w2 is white, w3 is black.
                     -- Black saturation is undefined in HSV.
-                    local s <const> = (w1 + w3 * blackSat) * wSumInv
+                    local s <const> = (w1 + w3 * kSat) * wSumInv
                     local v <const> = (w1 + w2) * wSumInv
+
+                    local r8 = 0
+                    local g8 = 0
+                    local b8 = 0
 
                     if abs(s - sActive) < retEps and
                         abs(v - vActive) < retEps then
@@ -608,21 +491,15 @@ dlg:canvas {
                             r8 = 255
                             g8 = 255
                             b8 = 255
-                        else
-                            r8 = 0
-                            g8 = 0
-                            b8 = 0
                         end
-                        a8 = 255
                     else
                         local rf <const>, gf <const>, bf <const> = hsvToRgb(hActive, s, v)
                         r8 = floor(rf * 255.0 + 0.5)
                         g8 = floor(gf * 255.0 + 0.5)
                         b8 = floor(bf * 255.0 + 0.5)
-                        a8 = 255
                     end
 
-                    byteStr = strpack("B B B B", r8, g8, b8, a8)
+                    byteStr = strpack("B B B B", r8, g8, b8, 255)
                 end
             end
 
