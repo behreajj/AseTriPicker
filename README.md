@@ -21,11 +21,6 @@ Right click will adjust the background color. When the canvas has focus, the lef
 ![Expanded Screen Cap](screenCap1.png)
 
 When the picker is wider than it is high, it will show text information about the color. Hue is expressed in degrees; other color data is expressed in percentages.
-
-![GIMP Comparison](gimpComparison.png)
-
-The triangle portion of this picker is different than in other software. It takes a triangular selection of a shade square, rather than stretching and compressing the square to fit into a triangle. The selection it takes can be adjusted in code by changing the saturation of the triangle's black color. (In HSV, black's saturation is undefined.) The disadvantage of this approach is that desaturated hues and grays cannot be properly expressed; the advantage is that the finite space within the triangle does not look so cramped. For comparison, see the GIMP color picker above.
-
 ## Modification
 
 To modify these scripts, see Aseprite's [API Reference](https://github.com/aseprite/api). There is also a [type definition](https://github.com/behreajj/aseprite-type-definition) for use with VS Code and the [Lua Language Server extension](https://github.com/LuaLS/lua-language-server).
