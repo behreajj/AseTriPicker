@@ -535,10 +535,10 @@ dlg:canvas {
                     local wSumInv <const> = wSum ~= 0.0 and 1.0 / wSum or 0.0
                     -- w2 is white, w3 is black.
                     -- Black saturation is undefined in HSV.
-                    local s <const> = (w1 + w3) * wSumInv
+                    local u <const> = (w1 + w3) * wSumInv
                     local v <const> = (w1 + w2) * wSumInv
 
-                    local diagSq <const> = v * v + s * s
+                    local diagSq <const> = v * v + u * u
                     local coeff <const> = diagSq < 0.0 and 0.0 or w2
 
                     local rf <const> = (w1 * rBase + coeff) * wSumInv
@@ -549,6 +549,8 @@ dlg:canvas {
                     g8 = floor(gf * 255 + 0.5)
                     b8 = floor(bf * 255 + 0.5)
 
+                    -- Problem where reticle will be clamped to two sides of
+                    -- the triangle, but will go off the edge of the third.
                     if abs(w1 - w1Active) < retEps
                         and abs(w2 - w2Active) < retEps
                         and abs(w3 - w3Active) < retEps then
