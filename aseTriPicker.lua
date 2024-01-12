@@ -570,48 +570,51 @@ dlg:canvas {
                 "G: %.2f%%", gf * 100.0), 2, 2 + yIncr * 5)
             ctx:fillText(string.format(
                 "B: %.2f%%", bf * 100.0), 2, 2 + yIncr * 6)
+
+            local r8 <const> = floor(rf * 255.0 + 0.5)
+            local g8 <const> = floor(gf * 255.0 + 0.5)
+            local b8 <const> = floor(bf * 255.0 + 0.5)
+
+            ctx:fillText(string.format(
+                "#%06x", r8 << 0x10|g8 << 0x08|b8), 2, 2 + yIncr * 8)
         end
 
-        local r8 <const> = floor(rf * 255.0 + 0.5)
-        local g8 <const> = floor(gf * 255.0 + 0.5)
-        local b8 <const> = floor(bf * 255.0 + 0.5)
-
-        dlg:modify { id = "hexCode", text = string.format("%06x",
-            r8 << 0x10|g8 << 0x08|b8) }
+        -- dlg:modify { id = "hexCode", text = string.format("%06x",
+        --     r8 << 0x10|g8 << 0x08|b8) }
     end,
 }
 
-dlg:entry {
-    id = "hexCode",
-    focus = false,
-    onchange = function()
-        local args <const> = dlg.data
-        local hexStr <const> = args.hexCode --[[@as string]]
-        if #hexStr >= 6 then
-            local hexRgb <const> = tonumber(hexStr, 16)
-            if hexRgb then
-                local r8 <const> = hexRgb >> 0x10 & 0xff
-                local g8 <const> = hexRgb >> 0x08 & 0xff
-                local b8 <const> = hexRgb & 0xff
+-- dlg:entry {
+--     id = "hexCode",
+--     focus = false,
+--     onchange = function()
+--         local args <const> = dlg.data
+--         local hexStr <const> = args.hexCode --[[@as string]]
+--         if #hexStr >= 6 then
+--             local hexRgb <const> = tonumber(hexStr, 16)
+--             if hexRgb then
+--                 local r8 <const> = hexRgb >> 0x10 & 0xff
+--                 local g8 <const> = hexRgb >> 0x08 & 0xff
+--                 local b8 <const> = hexRgb & 0xff
 
-                local rf <const> = r8 / 255.0
-                local gf <const> = g8 / 255.0
-                local bf <const> = b8 / 255.0
+--                 local rf <const> = r8 / 255.0
+--                 local gf <const> = g8 / 255.0
+--                 local bf <const> = b8 / 255.0
 
-                if active.fgBgFlag == 1 then
-                    active.hueBack, active.satBack, active.valBack = rgbToHsv(
-                        rf, gf, bf)
-                    active.alphaBack = 1.0
-                else
-                    active.hueFore, active.satFore, active.valFore = rgbToHsv(
-                        rf, gf, bf)
-                    active.alphaFore = 1.0
-                end
-            end
-            dlg:repaint()
-        end
-    end
-}
+--                 if active.fgBgFlag == 1 then
+--                     active.hueBack, active.satBack, active.valBack = rgbToHsv(
+--                         rf, gf, bf)
+--                     active.alphaBack = 1.0
+--                 else
+--                     active.hueFore, active.satFore, active.valFore = rgbToHsv(
+--                         rf, gf, bf)
+--                     active.alphaFore = 1.0
+--                 end
+--             end
+--             dlg:repaint()
+--         end
+--     end
+-- }
 
 dlg:button {
     id = "getForeButton",
