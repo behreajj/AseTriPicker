@@ -223,6 +223,7 @@ dlg:canvas {
         end
     end,
     onmouseup = function(event)
+        -- TODO: Support flipping fore and back with mouse click.
         active.mouseDownRing = false
         active.mouseDownTri = false
         active.fgBgFlag = 0
