@@ -336,26 +336,29 @@ dlg:canvas {
                 local s <const> = (w1 + w3 * kSat) * wSumInv
                 local v <const> = (w1 + w2) * wSumInv
 
+                local diagSq <const> = v * v + s * s
+                local coeff <const> = diagSq < 0.0 and 0.0 or w2
+                local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hActive, 1.0, 1.0)
+
+                local rf <const> = (w1 * rBase + coeff) * wSumInv
+                local gf <const> = (w1 * gBase + coeff) * wSumInv
+                local bf <const> = (w1 * bBase + coeff) * wSumInv
+
+                local r8 <const> = math.floor(rf * 255.0 + 0.5)
+                local g8 <const> = math.floor(gf * 255.0 + 0.5)
+                local b8 <const> = math.floor(bf * 255.0 + 0.5)
+                local a8 <const> = math.floor(active.alphaBack * 255.0 + 0.5)
+
                 if active.fgBgFlag == 1 then
                     active.satBack = s
                     active.valBack = v
                     app.command.SwitchColors()
-                    app.fgColor = Color {
-                        hue = hActive * 360.0,
-                        saturation = s,
-                        value = v,
-                        alpha = math.floor(active.alphaBack * 255.0 + 0.5)
-                    }
+                    app.fgColor = Color { r = r8, g = g8, b = b8, a = a8 }
                     app.command.SwitchColors()
                 else
                     active.satFore = s
                     active.valFore = v
-                    app.fgColor = Color {
-                        hue = hActive * 360.0,
-                        saturation = s,
-                        value = v,
-                        alpha = math.floor(active.alphaFore * 255.0 + 0.5)
-                    }
+                    app.fgColor = Color { r = r8, g = g8, b = b8, a = a8 }
                 end
                 dlg:repaint()
             end
@@ -426,6 +429,7 @@ dlg:canvas {
         local yDiff3_1 <const> = yTri3 - yTri1
         local bwDenom <const> = yDiff2_3 * xDiff1_3 + xDiff3_2 * yDiff1_3
         local bwDnmInv <const> = 1.0 / bwDenom
+        local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hActive, 1.0, 1.0)
 
         local strpack <const> = string.pack
         local floor <const> = math.floor
@@ -492,7 +496,14 @@ dlg:canvas {
                             b8 = 255
                         end
                     else
-                        local rf <const>, gf <const>, bf <const> = hsvToRgb(hActive, s, v)
+                        -- local rf <const>, gf <const>, bf <const> = hsvToRgb(hActive, s, v)
+                        local diagSq <const> = v * v + s * s
+                        local coeff <const> = diagSq < 0.0 and 0.0 or w2
+
+                        local rf <const> = (w1 * rBase + coeff) * wSumInv
+                        local gf <const> = (w1 * gBase + coeff) * wSumInv
+                        local bf <const> = (w1 * bBase + coeff) * wSumInv
+
                         r8 = floor(rf * 255.0 + 0.5)
                         g8 = floor(gf * 255.0 + 0.5)
                         b8 = floor(bf * 255.0 + 0.5)
