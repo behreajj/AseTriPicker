@@ -248,6 +248,7 @@ dlg:canvas {
             active.alphaFo = aTemp
 
             dlg:repaint()
+            app.command.SwitchColors()
         end
     end,
     onmousemove = function(event)
