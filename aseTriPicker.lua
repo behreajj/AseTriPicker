@@ -170,23 +170,6 @@ dlg:canvas {
                 }
             end
             dlg:repaint()
-        elseif event.shiftKey and event.code == "KeyX" then
-            local hTemp <const> = active.hueBack
-            local sTemp <const> = active.satBack
-            local vTemp <const> = active.valBack
-            local aTemp <const> = active.alphaBack
-
-            active.hueBack = active.hueFore
-            active.satBack = active.satFore
-            active.valBack = active.valFore
-            active.alphaBack = active.alphaFore
-
-            active.hueFore = hTemp
-            active.satFore = sTemp
-            active.valFore = vTemp
-            active.alphaFo = aTemp
-
-            dlg:repaint()
         end
     end,
     onmousedown = function(event)
@@ -223,10 +206,35 @@ dlg:canvas {
         end
     end,
     onmouseup = function(event)
-        -- TODO: Support flipping fore and back with mouse click.
         active.mouseDownRing = false
         active.mouseDownTri = false
         active.fgBgFlag = 0
+
+        local swatchSize <const> = defaults.swatchSize
+        local offset <const> = swatchSize // 2
+        local xMouseUp <const> = event.x
+        local yMouseUp <const> = event.y
+        local hCanvas <const> = active.hCanvas
+        if xMouseUp >= 0 and xMouseUp < offset + swatchSize
+            and yMouseUp >= hCanvas - swatchSize - 1 - offset
+            and yMouseUp < hCanvas then
+            local hTemp <const> = active.hueBack
+            local sTemp <const> = active.satBack
+            local vTemp <const> = active.valBack
+            local aTemp <const> = active.alphaBack
+
+            active.hueBack = active.hueFore
+            active.satBack = active.satFore
+            active.valBack = active.valFore
+            active.alphaBack = active.alphaFore
+
+            active.hueFore = hTemp
+            active.satFore = sTemp
+            active.valFore = vTemp
+            active.alphaFo = aTemp
+
+            dlg:repaint()
+        end
     end,
     onmousemove = function(event)
         if active.mouseDownRing or active.mouseDownTri then
