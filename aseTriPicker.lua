@@ -1,4 +1,5 @@
 local defaults <const> = {
+    -- TODO: Up keys adjust value?
     wCanvas = 200,
     hCanvas = 200,
     xCenter = 100,
@@ -11,7 +12,8 @@ local defaults <const> = {
     alpha = 1.0,
     textDisplayLimit = 50,
     swatchSize = 16,
-    lrKeyIncr = 1.0 / 1080.0
+    lrKeyIncr = 1.0 / 1080.0,
+    retEps = 0.015,
 }
 
 local active <const> = {
@@ -23,21 +25,22 @@ local active <const> = {
     valFore = defaults.val,
     alphaFore = defaults.alpha,
 
+    w1Fore = 0.0,
+    w2Fore = 0.0,
+    w3Fore = 0.0,
+
     hueBack = defaults.hue,
     satBack = defaults.sat,
     valBack = defaults.val,
     alphaBack = defaults.alpha,
 
+    w1Back = 0.0,
+    w2Back = 0.0,
+    w3Back = 0.0,
+
     fgBgFlag = 0,
     mouseDownRing = false,
     mouseDownTri = false,
-
-    xMouseDown = 0,
-    yMouseDown = 0,
-    xMouseUp = 0,
-    yMouseUp = 0,
-    xMouseMove = 0,
-    yMouseMove = 0,
 }
 
 ---@param h number
@@ -181,8 +184,6 @@ dlg:canvas {
     onmousedown = function(event)
         local xMouseDown <const> = event.x
         local yMouseDown <const> = event.y
-        active.xMouseDown = xMouseDown
-        active.yMouseDown = yMouseDown
 
         local ringInEdge <const> = defaults.ringInEdge
         local sqRie <const> = ringInEdge * ringInEdge
@@ -202,7 +203,7 @@ dlg:canvas {
         local yNorm <const> = yDelta * rCanvasInv
 
         local sqMag <const> = xNorm * xNorm + yNorm * yNorm
-        if not active.mouseDOwnTri and (sqMag >= sqRie and sqMag <= 1.0) then
+        if not active.mouseDownTri and (sqMag >= sqRie and sqMag <= 1.0) then
             active.mouseDownRing = true
             if event.button == MouseButton.RIGHT then
                 active.fgBgFlag = 1
@@ -219,8 +220,6 @@ dlg:canvas {
     onmouseup = function(event)
         local xMouseUp <const> = event.x
         local yMouseUp <const> = event.y
-        active.xMouseUp = xMouseUp
-        active.yMouseUp = yMouseUp
 
         active.mouseDownRing = false
         active.mouseDownTri = false
@@ -254,8 +253,6 @@ dlg:canvas {
     onmousemove = function(event)
         local xMouseMove <const> = event.x
         local yMouseMove <const> = event.y
-        active.xMouseMove = xMouseMove
-        active.yMouseMove = yMouseMove
 
         if active.mouseDownRing or active.mouseDownTri then
             local wCanvas <const> = active.wCanvas
@@ -372,12 +369,22 @@ dlg:canvas {
                 if active.fgBgFlag == 1 then
                     active.satBack = s
                     active.valBack = v
+
+                    active.w1Back = w1
+                    active.w2Back = w2
+                    active.w3Back = w3
+
                     app.command.SwitchColors()
                     app.fgColor = Color { r = r8, g = g8, b = b8, a = a8 }
                     app.command.SwitchColors()
                 else
                     active.satFore = s
                     active.valFore = v
+
+                    active.w1Fore = w1
+                    active.w2Fore = w2
+                    active.w3Fore = w3
+
                     app.fgColor = Color { r = r8, g = g8, b = b8, a = a8 }
                 end
 
@@ -386,9 +393,11 @@ dlg:canvas {
         end
     end,
     onpaint = function(event)
-        local ringInEdge <const> = defaults.ringInEdge
-        local sqRie <const> = ringInEdge * ringInEdge
         local angOffset <const> = defaults.angOffset
+        local retEps <const> = defaults.retEps
+        local ringInEdge <const> = defaults.ringInEdge
+
+        local sqRie <const> = ringInEdge * ringInEdge
         local tau <const> = 6.2831853071796
         local sqrt3_2 <const> = 0.86602540378444
 
@@ -411,14 +420,25 @@ dlg:canvas {
         local hActive = 0
         local sActive = 0
         local vActive = 0
+        local w1Active = 0
+        local w2Active = 0
+        local w3Active = 0
         if active.fgBgFlag == 1 then
             hActive = active.hueBack
             sActive = active.satBack
             vActive = active.valBack
+
+            w1Active = active.w1Back
+            w2Active = active.w2Back
+            w3Active = active.w3Back
         else
             hActive = active.hueFore
             sActive = active.satFore
             vActive = active.valFore
+
+            w1Active = active.w1Fore
+            w2Active = active.w2Fore
+            w3Active = active.w3Fore
         end
 
         -- Find main point of the triangle.
@@ -449,9 +469,11 @@ dlg:canvas {
         local bwDnmInv <const> = 1.0 / bwDenom
         local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hActive, 1.0, 1.0)
 
+        -- Cache method used in while loop.
         local strpack <const> = string.pack
         local floor <const> = math.floor
         local atan <const> = math.atan
+        local abs <const> = math.abs
 
         ---@type string[]
         local byteStrs <const> = {}
@@ -492,6 +514,10 @@ dlg:canvas {
                 if w1 >= 0.0 and w1 <= 1.0
                     and w2 >= 0.0 and w2 <= 1.0
                     and w3 >= 0.0 and w3 <= 1.0 then
+                    local r8 = 0
+                    local g8 = 0
+                    local b8 = 0
+
                     local wSum <const> = w1 + w2 + w3
                     local wSumInv <const> = wSum ~= 0.0 and 1.0 / wSum or 0.0
                     -- w2 is white, w3 is black.
@@ -506,9 +532,17 @@ dlg:canvas {
                     local gf <const> = (w1 * gBase + coeff) * wSumInv
                     local bf <const> = (w1 * bBase + coeff) * wSumInv
 
-                    local r8 = floor(rf * 255 + 0.5)
-                    local g8 = floor(gf * 255 + 0.5)
-                    local b8 = floor(bf * 255 + 0.5)
+                    r8 = floor(rf * 255 + 0.5)
+                    g8 = floor(gf * 255 + 0.5)
+                    b8 = floor(bf * 255 + 0.5)
+
+                    if abs(w1 - w1Active) < retEps
+                        and abs(w2 - w2Active) < retEps
+                        and abs(w3 - w3Active) < retEps then
+                        r8 = 255 - r8
+                        g8 = 255 - g8
+                        b8 = 255 - b8
+                    end
 
                     byteStr = strpack("B B B B", r8, g8, b8, 255)
                 end
@@ -534,18 +568,6 @@ dlg:canvas {
         local textColor <const> = app.theme.color.text
         local swatchSize <const> = defaults.swatchSize
         local offset <const> = swatchSize // 2
-
-        -- Draw reticle.
-        local retSize <const> = math.max(5, rCanvas // 18)
-        local halfRet <const> = retSize // 2
-        if active.mouseDownTri or active.mouseDownRing then
-            ctx.strokeWidth = 1
-            ctx.color = textColor
-            ctx:strokeRect(Rectangle(
-                active.xMouseMove - halfRet,
-                active.yMouseMove - halfRet,
-                retSize, retSize))
-        end
 
         -- Draw background color swatch.
         local backColor <const> = Color {
@@ -621,12 +643,17 @@ dlg:button {
         active.hueFore, active.satFore, active.valFore = rgbToHsv(
             r8 / 255.0, g8 / 255.0, b8 / 255.0)
         active.alphaFore = t8 / 255.0
+
+        active.w1Fore = 0.0
+        active.w2Fore = 0.0
+        active.w3Fore = 0.0
+
         dlg:repaint()
     end
 }
 
 dlg:button {
-    id = "getForeButton",
+    id = "getBackButton",
     text = "&BACK",
     onclick = function()
         app.command.SwitchColors()
@@ -639,6 +666,11 @@ dlg:button {
         active.hueBack, active.satBack, active.valBack = rgbToHsv(
             r8 / 255.0, g8 / 255.0, b8 / 255.0)
         active.alphaBack = t8 / 255.0
+
+        active.w1Back = 0.0
+        active.w2Back = 0.0
+        active.w3Back = 0.0
+
         dlg:repaint()
     end
 }
