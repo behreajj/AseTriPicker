@@ -375,7 +375,12 @@ dlg:canvas {
                     active.w3Back = w3
 
                     app.command.SwitchColors()
-                    app.fgColor = Color { r = r8, g = g8, b = b8, a = a8 }
+                    app.fgColor = Color {
+                        hue = hActive * 360.0,
+                        saturation = active.satBack,
+                        value = active.valBack,
+                        alpha = math.floor(active.alphaBack * 255.0 + 0.5)
+                    }
                     app.command.SwitchColors()
                 else
                     _, active.satFore, active.valFore = rgbToHsv(rf, gf, bf)
@@ -384,7 +389,12 @@ dlg:canvas {
                     active.w2Fore = w2
                     active.w3Fore = w3
 
-                    app.fgColor = Color { r = r8, g = g8, b = b8, a = a8 }
+                    app.fgColor = Color {
+                        hue = hActive * 360.0,
+                        saturation = active.satFore,
+                        value = active.valFore,
+                        alpha = math.floor(active.alphaFore * 255.0 + 0.5)
+                    }
                 end
 
                 dlg:repaint()

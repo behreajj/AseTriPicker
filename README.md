@@ -24,9 +24,9 @@ When the picker is wider than it is high, it will show text information about th
 
 When a color is changed using the outer ring, the Aseprite color will be updated using HSV. When it is changed using the inner triangle, the Aseprite color will be updated using RGB.
 
-In HSV, when a color's saturation is zero, its hue is undefined. When it's value is zero, both its hue and its saturation are undefined. This is easier to understand by visualizing the HSV model as an upside-down cone. If you have both the color picker dialog and the built-in Color Tint/Shade/Tone picker open, you will see the impact of these edge cases. The tint will return to red when a gray color is selected, as undefined hue defaults to zero, which is red.
+In HSV, when a color's saturation is zero, its hue is undefined. When it's value is zero, both its hue and its saturation are undefined. This is easier to understand by visualizing the HSV model as an upside-down cone. Ultimately, the [HSV](https://en.wikipedia.org/wiki/HSL_and_HSV) method for representing color is **deeply** flawed. 
 
-Ultimately, the [HSV](https://en.wikipedia.org/wiki/HSL_and_HSV) method for representing color is **deeply** flawed. Neither this color picker, nor HSV in general, should be used to create harmonious colors or determine shades of a hue. I would encourage readers to research alternatives like [CIE LAB](https://en.wikipedia.org/wiki/CIELAB_color_space), [SRLAB2](https://www.magnetkern.de/srlab2.html), [OK LAB](https://bottosson.github.io/posts/oklab/), [HSLuv](https://www.hsluv.org/) or [Okhsl](https://bottosson.github.io/posts/colorpicker/).
+either this color picker, nor HSV in general, should be used to create harmonious colors or determine shades of a hue. I would encourage readers to research alternatives like [CIE LAB](https://en.wikipedia.org/wiki/CIELAB_color_space), [SRLAB2](https://www.magnetkern.de/srlab2.html), [OK LAB](https://bottosson.github.io/posts/oklab/), [HSLuv](https://www.hsluv.org/) or [Okhsl](https://bottosson.github.io/posts/colorpicker/).
 
 ## Modification
 
