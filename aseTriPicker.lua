@@ -244,7 +244,7 @@ dlg:canvas {
             active.hueFore = hTemp
             active.satFore = sTemp
             active.valFore = vTemp
-            active.alphaFo = aTemp
+            active.alphaFore = aTemp
 
             dlg:repaint()
             app.command.SwitchColors()
@@ -274,21 +274,22 @@ dlg:canvas {
                 local tau <const> = 6.2831853071796
                 local angSigned <const> = math.atan(yNorm, xNorm)
 
-                local hueWheel <const> = (angSigned + angOffset) / tau
+                local hwSigned <const> = (angSigned + angOffset) / tau
+                local hueWheel = hwSigned - math.floor(hwSigned)
                 if active.fgBgFlag == 1 then
-                    active.hueBack = hueWheel % 1.0
+                    active.hueBack = hueWheel
                     app.command.SwitchColors()
                     app.fgColor = Color {
-                        hue = active.hueBack * 360.0,
+                        hue = hueWheel * 360.0,
                         saturation = active.satBack,
                         value = active.valBack,
                         alpha = math.floor(active.alphaBack * 255.0 + 0.5)
                     }
                     app.command.SwitchColors()
                 else
-                    active.hueFore = hueWheel % 1.0
+                    active.hueFore = hueWheel
                     app.fgColor = Color {
-                        hue = active.hueFore * 360.0,
+                        hue = hueWheel * 360.0,
                         saturation = active.satFore,
                         value = active.valFore,
                         alpha = math.floor(active.alphaFore * 255.0 + 0.5)
@@ -350,11 +351,10 @@ dlg:canvas {
                 local wSumInv <const> = wSum ~= 0.0 and 1.0 / wSum or 0.0
                 -- w2 is white, w3 is black.
                 -- Black saturation is undefined in HSV.
-                local s <const> = (w1 + w3) * wSumInv
+                local u <const> = (w1 + w3) * wSumInv
                 local v <const> = (w1 + w2) * wSumInv
-                local a8 <const> = math.floor(active.alphaBack * 255.0 + 0.5)
 
-                local diagSq <const> = v * v + s * s
+                local diagSq <const> = v * v + u * u
                 local coeff <const> = diagSq < 0.0 and 0.0 or w2
                 local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hActive, 1.0, 1.0)
 
@@ -365,10 +365,10 @@ dlg:canvas {
                 local r8 <const> = math.floor(rf * 255.0 + 0.5)
                 local g8 <const> = math.floor(gf * 255.0 + 0.5)
                 local b8 <const> = math.floor(bf * 255.0 + 0.5)
+                local a8 <const> = math.floor(active.alphaBack * 255.0 + 0.5)
 
                 if active.fgBgFlag == 1 then
-                    active.satBack = s
-                    active.valBack = v
+                    _, active.satBack, active.valBack = rgbToHsv(rf, gf, bf)
 
                     active.w1Back = w1
                     active.w2Back = w2
@@ -378,8 +378,7 @@ dlg:canvas {
                     app.fgColor = Color { r = r8, g = g8, b = b8, a = a8 }
                     app.command.SwitchColors()
                 else
-                    active.satFore = s
-                    active.valFore = v
+                    _, active.satFore, active.valFore = rgbToHsv(rf, gf, bf)
 
                     active.w1Fore = w1
                     active.w2Fore = w2
@@ -417,16 +416,19 @@ dlg:canvas {
         active.wCanvas = wCanvas
         active.hCanvas = hCanvas
 
-        local hActive = 0
-        local sActive = 0
-        local vActive = 0
-        local w1Active = 0
-        local w2Active = 0
-        local w3Active = 0
+        local hActive = 0.0
+        local sActive = 0.0
+        local vActive = 0.0
+        local tActive = 0.0
+
+        local w1Active = 0.0
+        local w2Active = 0.0
+        local w3Active = 0.0
         if active.fgBgFlag == 1 then
             hActive = active.hueBack
             sActive = active.satBack
             vActive = active.valBack
+            tActive = active.alphaBack
 
             w1Active = active.w1Back
             w2Active = active.w2Back
@@ -435,6 +437,7 @@ dlg:canvas {
             hActive = active.hueFore
             sActive = active.satFore
             vActive = active.valFore
+            tActive = active.alphaFore
 
             w1Active = active.w1Fore
             w2Active = active.w2Fore
@@ -600,14 +603,21 @@ dlg:canvas {
             local yIncr <const> = textSize.height + 4
 
             ctx.color = textColor
-            if sActive > 0.0 and vActive > 0.0 then
+
+            if vActive > 0.0 then
+                if sActive > 0.0 then
+                    ctx:fillText(string.format(
+                        "H: %.2f", hActive * 360), 2, 2 + yIncr * 0)
+                else
+                    ctx:fillText("H: ---", 2, 2 + yIncr * 0)
+                end
+
                 ctx:fillText(string.format(
-                    "H: %.2f", hActive * 360), 2, 2 + yIncr * 0)
+                    "S: %.2f%%", sActive * 100), 2, 2 + yIncr * 1)
             else
                 ctx:fillText("H: ---", 2, 2 + yIncr * 0)
+                ctx:fillText("S: ---", 2, 2 + yIncr * 1)
             end
-            ctx:fillText(string.format(
-                "S: %.2f%%", sActive * 100), 2, 2 + yIncr * 1)
             ctx:fillText(string.format(
                 "V: %.2f%%", vActive * 100), 2, 2 + yIncr * 2)
 
@@ -621,12 +631,14 @@ dlg:canvas {
             ctx:fillText(string.format(
                 "B: %.2f%%", bf * 100), 2, 2 + yIncr * 6)
 
+            ctx:fillText(string.format(
+                "A: %.2f%%", tActive * 100), 2, 2 + yIncr * 8)
+
             local r8 <const> = floor(rf * 255 + 0.5)
             local g8 <const> = floor(gf * 255 + 0.5)
             local b8 <const> = floor(bf * 255 + 0.5)
-
             ctx:fillText(string.format(
-                "#%06x", r8 << 0x10|g8 << 0x08|b8), 2, 2 + yIncr * 8)
+                "#%06x", r8 << 0x10|g8 << 0x08|b8), 2, 2 + yIncr * 10)
         end
     end,
 }

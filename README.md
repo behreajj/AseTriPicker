@@ -16,11 +16,14 @@ If an error message in Aseprite's console appears, check if the script folder is
 
 A hot key can be assigned to the script by going to `Edit > Keyboard Shortcuts`. The search input box in the top left of the shortcuts dialog can be used to locate the script by its file name. The dialog can be closed with `Alt+X`. The foreground color can be retrieved with `Alt+F`; the background color, with `Alt+B`.
 
-Right click will adjust the background color. When the canvas has focus, the left and right arrows will adjust the hue by a small increment.
+When the canvas has focus, left click will change the foreground color and right click will adjust the background color. Clicking on the swatches in the bottom-left corner will swap the fore and background color.
+
+When a color is changed using the outer ring, the Aseprite color will be updated using HSV. When it is changed using the inner triangle, the Aseprite color will be updated using RGB. In HSV, when a color's saturation is zero, its hue is undefined. When it's value is zero, both its hue and its saturation are undefined. s
 
 ![Expanded Screen Cap](screenCap1.png)
 
 When the picker is wider than it is high, it will show text information about the color. Hue is expressed in degrees; other color data is expressed in percentages.
+
 ## Modification
 
 To modify these scripts, see Aseprite's [API Reference](https://github.com/aseprite/api). There is also a [type definition](https://github.com/behreajj/aseprite-type-definition) for use with VS Code and the [Lua Language Server extension](https://github.com/LuaLS/lua-language-server).
