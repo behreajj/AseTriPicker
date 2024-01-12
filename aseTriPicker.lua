@@ -9,7 +9,6 @@ local defaults <const> = {
     sat = 1.0,
     val = 1.0,
     alpha = 1.0,
-    retEps = 0.015,
     textDisplayLimit = 50,
     swatchSize = 16,
     lrKeyIncr = 1.0 / 1080.0
@@ -32,6 +31,13 @@ local active <const> = {
     fgBgFlag = 0,
     mouseDownRing = false,
     mouseDownTri = false,
+
+    xMouseDown = 0,
+    yMouseDown = 0,
+    xMouseUp = 0,
+    yMouseUp = 0,
+    xMouseMove = 0,
+    yMouseMove = 0,
 }
 
 ---@param h number
@@ -173,6 +179,11 @@ dlg:canvas {
         end
     end,
     onmousedown = function(event)
+        local xMouseDown <const> = event.x
+        local yMouseDown <const> = event.y
+        active.xMouseDown = xMouseDown
+        active.yMouseDown = yMouseDown
+
         local ringInEdge <const> = defaults.ringInEdge
         local sqRie <const> = ringInEdge * ringInEdge
 
@@ -184,8 +195,6 @@ dlg:canvas {
         local rCanvas <const> = (shortEdge - 1.0) * 0.5
         local rCanvasInv <const> = rCanvas ~= 0.0 and 1.0 / rCanvas or 0.0
 
-        local xMouseDown <const> = event.x
-        local yMouseDown <const> = event.y
         local xDelta <const> = xMouseDown - xCenter
         local yDelta <const> = yCenter - yMouseDown
 
@@ -193,12 +202,14 @@ dlg:canvas {
         local yNorm <const> = yDelta * rCanvasInv
 
         local sqMag <const> = xNorm * xNorm + yNorm * yNorm
-        if sqMag >= sqRie and sqMag <= 1.0 then
+        if not active.mouseDOwnTri and (sqMag >= sqRie and sqMag <= 1.0) then
             active.mouseDownRing = true
             if event.button == MouseButton.RIGHT then
                 active.fgBgFlag = 1
             end
-        elseif sqMag < sqRie then
+        end
+
+        if not active.mouseDownRing and (sqMag < sqRie) then
             active.mouseDownTri = true
             if event.button == MouseButton.RIGHT then
                 active.fgBgFlag = 1
@@ -206,14 +217,17 @@ dlg:canvas {
         end
     end,
     onmouseup = function(event)
+        local xMouseUp <const> = event.x
+        local yMouseUp <const> = event.y
+        active.xMouseUp = xMouseUp
+        active.yMouseUp = yMouseUp
+
         active.mouseDownRing = false
         active.mouseDownTri = false
         active.fgBgFlag = 0
 
         local swatchSize <const> = defaults.swatchSize
         local offset <const> = swatchSize // 2
-        local xMouseUp <const> = event.x
-        local yMouseUp <const> = event.y
         local hCanvas <const> = active.hCanvas
         if xMouseUp >= 0 and xMouseUp < offset + swatchSize
             and yMouseUp >= hCanvas - swatchSize - 1 - offset
@@ -237,6 +251,11 @@ dlg:canvas {
         end
     end,
     onmousemove = function(event)
+        local xMouseMove <const> = event.x
+        local yMouseMove <const> = event.y
+        active.xMouseMove = xMouseMove
+        active.yMouseMove = yMouseMove
+
         if active.mouseDownRing or active.mouseDownTri then
             local wCanvas <const> = active.wCanvas
             local hCanvas <const> = active.hCanvas
@@ -246,8 +265,6 @@ dlg:canvas {
             local rCanvas <const> = (shortEdge - 1.0) * 0.5
             local rCanvasInv <const> = rCanvas ~= 0.0 and 1.0 / rCanvas or 0.0
 
-            local xMouseMove <const> = event.x
-            local yMouseMove <const> = event.y
             local xDelta <const> = xMouseMove - xCenter
             local yDelta <const> = yCenter - yMouseMove
 
@@ -257,8 +274,9 @@ dlg:canvas {
             if active.mouseDownRing then
                 local angOffset <const> = defaults.angOffset
                 local tau <const> = 6.2831853071796
-                local angSigned <const> = angOffset + math.atan(yNorm, xNorm)
-                local hueWheel <const> = angSigned / tau
+                local angSigned <const> = math.atan(yNorm, xNorm)
+
+                local hueWheel <const> = (angSigned + angOffset) / tau
                 if active.fgBgFlag == 1 then
                     active.hueBack = hueWheel % 1.0
                     app.command.SwitchColors()
@@ -370,12 +388,11 @@ dlg:canvas {
         local ringInEdge <const> = defaults.ringInEdge
         local sqRie <const> = ringInEdge * ringInEdge
         local angOffset <const> = defaults.angOffset
-        local retEps <const> = defaults.retEps
         local tau <const> = 6.2831853071796
         local sqrt3_2 <const> = 0.86602540378444
 
         local ctx <const> = event.context
-        ctx.antialias = true
+        ctx.antialias = false
 
         local wCanvas <const> = ctx.width
         local hCanvas <const> = ctx.height
@@ -434,7 +451,6 @@ dlg:canvas {
         local strpack <const> = string.pack
         local floor <const> = math.floor
         local atan <const> = math.atan
-        local abs <const> = math.abs
 
         ---@type string[]
         local byteStrs <const> = {}
@@ -450,7 +466,6 @@ dlg:canvas {
 
             local xNorm <const> = xDelta * rCanvasInv
             local yNorm <const> = yDelta * rCanvasInv
-
             local sqMag <const> = xNorm * xNorm + yNorm * yNorm
 
             local byteStr = packZero
@@ -515,8 +530,21 @@ dlg:canvas {
             Rectangle(0, 0, wCanvas, hCanvas),
             Rectangle(0, 0, wCanvas, hCanvas))
 
+        local textColor <const> = app.theme.color.text
         local swatchSize <const> = defaults.swatchSize
         local offset <const> = swatchSize // 2
+
+        -- Draw reticle.
+        local retSize <const> = math.max(5, rCanvas // 18)
+        local halfRet <const> = retSize // 2
+        if active.mouseDownTri or active.mouseDownRing then
+            ctx.strokeWidth = 1
+            ctx.color = textColor
+            ctx:strokeRect(Rectangle(
+                active.xMouseMove - halfRet,
+                active.yMouseMove - halfRet,
+                retSize, retSize))
+        end
 
         -- Draw background color swatch.
         local backColor <const> = Color {
@@ -548,7 +576,7 @@ dlg:canvas {
             local textSize <const> = ctx:measureText("E")
             local yIncr <const> = textSize.height + 4
 
-            ctx.color = app.theme.color.text
+            ctx.color = textColor
             if sActive > 0.0 and vActive > 0.0 then
                 ctx:fillText(string.format(
                     "H: %.2f", hActive * 360), 2, 2 + yIncr * 0)
