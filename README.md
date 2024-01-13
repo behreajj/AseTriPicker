@@ -26,7 +26,7 @@ When a color is changed using the outer ring, the Aseprite color will be updated
 
 In HSV, when a color's saturation is zero, its hue is undefined. When it's value is zero, both its hue and its saturation are undefined. This is easier to understand by visualizing the HSV model as an upside-down cone. Ultimately, the [HSV](https://en.wikipedia.org/wiki/HSL_and_HSV) method for representing color is **deeply** flawed. 
 
-either this color picker, nor HSV in general, should be used to create harmonious colors or determine shades of a hue. I would encourage readers to research alternatives like [CIE LAB](https://en.wikipedia.org/wiki/CIELAB_color_space), [SRLAB2](https://www.magnetkern.de/srlab2.html), [OK LAB](https://bottosson.github.io/posts/oklab/), [HSLuv](https://www.hsluv.org/) or [Okhsl](https://bottosson.github.io/posts/colorpicker/).
+Neither this color picker, nor HSV in general, should be used to create harmonious colors or determine shades of a hue. I would encourage readers to research alternatives like [CIE LAB](https://en.wikipedia.org/wiki/CIELAB_color_space), [SRLAB2](https://www.magnetkern.de/srlab2.html), [OK LAB](https://bottosson.github.io/posts/oklab/), [HSLuv](https://www.hsluv.org/) or [Okhsl](https://bottosson.github.io/posts/colorpicker/). An SR LAB 2 picker is available at [AsepriteAddons](https://github.com/behreajj/AsepriteAddons); Okhsl pickers can be found [here](https://github.com/behreajj/asepriteokhsl) and [here](https://lampysprites.itch.io/pickles).
 
 ## Modification
 
