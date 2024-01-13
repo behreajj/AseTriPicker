@@ -1,5 +1,6 @@
 local defaults <const> = {
     -- TODO: Up keys adjust value?
+    -- TODO: Way to edit alpha channel?
     wCanvas = 200,
     hCanvas = 200,
     xCenter = 100,
@@ -254,7 +255,8 @@ dlg:canvas {
         local xMouseMove <const> = event.x
         local yMouseMove <const> = event.y
 
-        if active.mouseDownRing or active.mouseDownTri then
+        if event.button ~= MouseButton.NONE
+            and (active.mouseDownRing or active.mouseDownTri) then
             local wCanvas <const> = active.wCanvas
             local hCanvas <const> = active.hCanvas
             local xCenter <const> = wCanvas * 0.5
@@ -271,10 +273,10 @@ dlg:canvas {
 
             if active.mouseDownRing then
                 local angOffset <const> = defaults.angOffset
-                local tau <const> = 6.2831853071796
+                local oneTau <const> = 0.1591549430919
                 local angSigned <const> = math.atan(yNorm, xNorm)
 
-                local hwSigned <const> = (angSigned + angOffset) / tau
+                local hwSigned <const> = (angSigned + angOffset) * oneTau
                 local hueWheel = hwSigned - math.floor(hwSigned)
                 if active.fgBgFlag == 1 then
                     active.hueBack = hueWheel
@@ -333,8 +335,9 @@ dlg:canvas {
                 local yDiff1_3 <const> = yTri1 - yTri3
                 local yDiff3_1 <const> = yTri3 - yTri1
                 local bwDenom <const> = yDiff2_3 * xDiff1_3 + xDiff3_2 * yDiff1_3
-                local bwDnmInv <const> = 1.0 / bwDenom
+                local bwDnmInv <const> = bwDenom ~= 0.0 and 1.0 / bwDenom or 0.0
 
+                -- TODO: Any way to optimize these?
                 local xbw <const> = xNorm - xTri3
                 local ybw <const> = yNorm - yTri3
                 local w1 <const> = math.min(math.max(
@@ -349,23 +352,20 @@ dlg:canvas {
 
                 local wSum <const> = w1 + w2 + w3
                 local wSumInv <const> = wSum ~= 0.0 and 1.0 / wSum or 0.0
+
                 -- w2 is white, w3 is black.
                 -- Black saturation is undefined in HSV.
-                local u <const> = (w1 + w3) * wSumInv
                 local v <const> = (w1 + w2) * wSumInv
+                local u <const> = (w1 + w3) * wSumInv
 
-                local diagSq <const> = v * v + u * u
-                local coeff <const> = diagSq < 0.0 and 0.0 or w2
+                local diagSq <const> = u * u + v * v
+                local coeff <const> = diagSq <= 0.0 and 0.0 or w2
+
                 local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hActive, 1.0, 1.0)
 
                 local rf <const> = (w1 * rBase + coeff) * wSumInv
                 local gf <const> = (w1 * gBase + coeff) * wSumInv
                 local bf <const> = (w1 * bBase + coeff) * wSumInv
-
-                local r8 <const> = math.floor(rf * 255.0 + 0.5)
-                local g8 <const> = math.floor(gf * 255.0 + 0.5)
-                local b8 <const> = math.floor(bf * 255.0 + 0.5)
-                local a8 <const> = math.floor(active.alphaBack * 255.0 + 0.5)
 
                 if active.fgBgFlag == 1 then
                     _, active.satBack, active.valBack = rgbToHsv(rf, gf, bf)
@@ -408,6 +408,7 @@ dlg:canvas {
 
         local sqRie <const> = ringInEdge * ringInEdge
         local tau <const> = 6.2831853071796
+        local oneTau <const> = 0.1591549430919
         local sqrt3_2 <const> = 0.86602540378444
 
         local ctx <const> = event.context
@@ -479,7 +480,7 @@ dlg:canvas {
         local yDiff1_3 <const> = yTri1 - yTri3
         local yDiff3_1 <const> = yTri3 - yTri1
         local bwDenom <const> = yDiff2_3 * xDiff1_3 + xDiff3_2 * yDiff1_3
-        local bwDnmInv <const> = 1.0 / bwDenom
+        local bwDnmInv <const> = bwDenom ~= 0.0 and 1.0 / bwDenom or 0.0
         local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hActive, 1.0, 1.0)
 
         -- Cache method used in while loop.
@@ -508,7 +509,7 @@ dlg:canvas {
             if sqMag >= sqRie and sqMag <= 1.0 then
                 -- Within the rim of the hue circle.
                 local angSigned <const> = angOffset + atan(yNorm, xNorm)
-                local hueWheel <const> = (angSigned % tau) / tau
+                local hueWheel <const> = (angSigned % tau) * oneTau
 
                 local rf <const>, gf <const>, bf <const> = hsvToRgb(hueWheel, 1.0, 1.0)
                 local r8 <const> = floor(rf * 255.0 + 0.5)
@@ -527,27 +528,23 @@ dlg:canvas {
                 if w1 >= 0.0 and w1 <= 1.0
                     and w2 >= 0.0 and w2 <= 1.0
                     and w3 >= 0.0 and w3 <= 1.0 then
-                    local r8 = 0
-                    local g8 = 0
-                    local b8 = 0
-
                     local wSum <const> = w1 + w2 + w3
                     local wSumInv <const> = wSum ~= 0.0 and 1.0 / wSum or 0.0
                     -- w2 is white, w3 is black.
                     -- Black saturation is undefined in HSV.
-                    local u <const> = (w1 + w3) * wSumInv
                     local v <const> = (w1 + w2) * wSumInv
+                    local u <const> = (w1 + w3) * wSumInv
 
-                    local diagSq <const> = v * v + u * u
-                    local coeff <const> = diagSq < 0.0 and 0.0 or w2
+                    local diagSq <const> = u * u + v * v
+                    local coeff <const> = diagSq <= 0.0 and 0.0 or w2
 
                     local rf <const> = (w1 * rBase + coeff) * wSumInv
                     local gf <const> = (w1 * gBase + coeff) * wSumInv
                     local bf <const> = (w1 * bBase + coeff) * wSumInv
 
-                    r8 = floor(rf * 255 + 0.5)
-                    g8 = floor(gf * 255 + 0.5)
-                    b8 = floor(bf * 255 + 0.5)
+                    local r8 = floor(rf * 255 + 0.5)
+                    local g8 = floor(gf * 255 + 0.5)
+                    local b8 = floor(bf * 255 + 0.5)
 
                     -- Problem where reticle will be clamped to two sides of
                     -- the triangle, but will go off the edge of the third.
@@ -575,42 +572,39 @@ dlg:canvas {
             colorMode = ColorMode.RGB
         }
         local img <const> = Image(imgSpec)
+        local drawRect <const> = Rectangle(0, 0, wCanvas, hCanvas)
         img.bytes = table.concat(byteStrs)
-        ctx:drawImage(img,
-            Rectangle(0, 0, wCanvas, hCanvas),
-            Rectangle(0, 0, wCanvas, hCanvas))
+        ctx:drawImage(img, drawRect, drawRect)
 
         local textColor <const> = app.theme.color.text
         local swatchSize <const> = defaults.swatchSize
         local offset <const> = swatchSize // 2
 
         -- Draw background color swatch.
-        local backColor <const> = Color {
+        ctx.color = Color {
             hue = active.hueBack * 360,
             saturation = active.satBack,
             value = active.valBack,
             alpha = 255
         }
-        ctx.color = backColor
         ctx:fillRect(Rectangle(
             offset, hCanvas - swatchSize - 1,
             swatchSize, swatchSize))
 
         -- Draw foreground color swatch.
-        local foreColor <const> = Color {
+        ctx.color = Color {
             hue = active.hueFore * 360,
             saturation = active.satFore,
             value = active.valFore,
             alpha = 255
         }
-        ctx.color = foreColor
         ctx:fillRect(Rectangle(
             0, hCanvas - swatchSize - 1 - offset,
             swatchSize, swatchSize))
 
         -- If dialog is wide enough, draw diagnostic text.
         if (wCanvas - hCanvas) > defaults.textDisplayLimit
-            and rCanvas > swatchSize * 2 then
+            and rCanvas > (swatchSize + swatchSize) then
             local textSize <const> = ctx:measureText("E")
             local yIncr <const> = textSize.height + 4
 
@@ -619,16 +613,10 @@ dlg:canvas {
             if vActive > 0.0 then
                 if sActive > 0.0 then
                     ctx:fillText(string.format(
-                        "H: %.2f", hActive * 360), 2, 2 + yIncr * 0)
-                else
-                    ctx:fillText("H: ---", 2, 2 + yIncr * 0)
+                        "H: %.2f", hActive * 360), 2, 2)
                 end
-
                 ctx:fillText(string.format(
-                    "S: %.2f%%", sActive * 100), 2, 2 + yIncr * 1)
-            else
-                ctx:fillText("H: ---", 2, 2 + yIncr * 0)
-                ctx:fillText("S: ---", 2, 2 + yIncr * 1)
+                    "S: %.2f%%", sActive * 100), 2, 2 + yIncr)
             end
             ctx:fillText(string.format(
                 "V: %.2f%%", vActive * 100), 2, 2 + yIncr * 2)
@@ -665,8 +653,8 @@ dlg:button {
         local b8 <const> = fgColor.blue
         local t8 <const> = fgColor.alpha
         active.hueFore, active.satFore, active.valFore = rgbToHsv(
-            r8 / 255.0, g8 / 255.0, b8 / 255.0)
-        active.alphaFore = t8 / 255.0
+            r8 / 255, g8 / 255, b8 / 255)
+        active.alphaFore = t8 / 255
 
         active.w1Fore = 0.0
         active.w2Fore = 0.0
@@ -688,8 +676,8 @@ dlg:button {
         local t8 <const> = bgColor.alpha
         app.command.SwitchColors()
         active.hueBack, active.satBack, active.valBack = rgbToHsv(
-            r8 / 255.0, g8 / 255.0, b8 / 255.0)
-        active.alphaBack = t8 / 255.0
+            r8 / 255, g8 / 255, b8 / 255)
+        active.alphaBack = t8 / 255
 
         active.w1Back = 0.0
         active.w2Back = 0.0
