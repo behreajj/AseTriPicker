@@ -207,14 +207,14 @@ dlg:canvas {
         local yNorm <const> = yDelta * rCanvasInv
 
         local sqMag <const> = xNorm * xNorm + yNorm * yNorm
-        if not active.mouseDownTri and (sqMag >= sqRie and sqMag <= 1.0) then
+        if (not active.mouseDownTri) and (sqMag >= sqRie and sqMag <= 1.0) then
             active.mouseDownRing = true
             if event.button == MouseButton.RIGHT then
                 active.fgBgFlag = 1
             end
         end
 
-        if not active.mouseDownRing and (sqMag < sqRie) then
+        if (not active.mouseDownRing) and (sqMag < sqRie) then
             active.mouseDownTri = true
             if event.button == MouseButton.RIGHT then
                 active.fgBgFlag = 1
