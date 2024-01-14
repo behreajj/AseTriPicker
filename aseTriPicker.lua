@@ -1,6 +1,8 @@
 local defaults <const> = {
     -- TODO: Up keys adjust value?
     -- TODO: Way to edit alpha channel?
+    -- TODO: Cache R, G, B values and tri vertices
+    -- in active to reduce lag?
     wCanvas = 200,
     hCanvas = 200,
     xCenter = 100,
@@ -15,6 +17,7 @@ local defaults <const> = {
     swatchSize = 16,
     lrKeyIncr = 1.0 / 1080.0,
     retEps = 0.015,
+    levels = 24,
 }
 
 local active <const> = {
@@ -276,7 +279,11 @@ dlg:canvas {
                 local oneTau <const> = 0.1591549430919
                 local angSigned <const> = math.atan(yNorm, xNorm)
 
-                local hwSigned <const> = (angSigned + angOffset) * oneTau
+                local hwSigned = (angSigned + angOffset) * oneTau
+                if event.shiftKey then
+                    local levels <const> = defaults.levels
+                    hwSigned = math.floor(0.5 + hwSigned * levels) / levels
+                end
                 local hueWheel = hwSigned - math.floor(hwSigned)
                 if active.fgBgFlag == 1 then
                     active.hueBack = hueWheel
