@@ -92,9 +92,9 @@ local function rgbToHsv(r, g, b)
     if mx <= 0.0 then return 0.0, 0.0, 0.0 end
 
     local mn <const> = math.min(r, gbmn)
-    local diff <const> = mx - mn
+    local chroma <const> = mx - mn
 
-    if diff <= 0.0 then
+    if chroma <= 0.0 then
         local light <const> = (mx + mn) * 0.5
         if light >= 1.0 then
             return 0.0, 0.0, 1.0
@@ -104,15 +104,18 @@ local function rgbToHsv(r, g, b)
 
     local hue = 0.0
     if r == mx then
-        hue = (g - b) / diff
+        hue = (g - b) / chroma
         if g < b then hue = hue + 6.0 end
     elseif g == mx then
-        hue = 2.0 + (b - r) / diff
+        hue = 2.0 + (b - r) / chroma
     elseif b == mx then
-        hue = 4.0 + (r - g) / diff
+        hue = 4.0 + (r - g) / chroma
     end
 
-    return hue / 6.0, diff / mx, mx
+    -- TODO: Simplify this by returning the chroma as well as the sat?
+    -- That might be the missing difference between sat and uv coords below?
+    -- See figure https://www.wikiwand.com/en/HSL_and_HSV#Media/File:Hsl-hsv_saturation-lightness_slices.svg
+    return hue / 6.0, chroma / mx, mx
 end
 
 local initFgColor <const> = Color(app.fgColor)
@@ -420,6 +423,7 @@ dlg:canvas {
 
         local ctx <const> = event.context
         ctx.antialias = false
+        ctx.blendMode = BlendMode.SRC
 
         local wCanvas <const> = ctx.width
         local hCanvas <const> = ctx.height
@@ -496,9 +500,16 @@ dlg:canvas {
         local atan <const> = math.atan
         local abs <const> = math.abs
 
+        local themeColors <const> = app.theme.color
+        local bkgColor <const> = themeColors.window_face
+        local textColor <const> = themeColors.text
+
+        -- local packZero <const> = strpack("B B B B", 0, 0, 0, 0)
+        local packZero <const> = strpack("B B B B",
+            bkgColor.red, bkgColor.green, bkgColor.blue, 255)
+
         ---@type string[]
         local byteStrs <const> = {}
-        local packZero <const> = strpack("B B B B", 0, 0, 0, 0)
         local lenCanvas <const> = wCanvas * hCanvas
         local i = 0
         while i < lenCanvas do
@@ -583,7 +594,6 @@ dlg:canvas {
         img.bytes = table.concat(byteStrs)
         ctx:drawImage(img, drawRect, drawRect)
 
-        local textColor <const> = app.theme.color.text
         local swatchSize <const> = defaults.swatchSize
         local offset <const> = swatchSize // 2
 
