@@ -270,30 +270,61 @@ dlg:canvas {
                 local angSigned <const> = math.atan(yNorm, xNorm)
 
                 local hwSigned = (angSigned + angOffset) * oneTau
-                if event.shiftKey then
-                    local shiftLevels <const> = defaults.shiftLevels
-                    hwSigned = math.floor(0.5 + hwSigned * shiftLevels) / shiftLevels
-                end
+                -- if event.shiftKey then
+                --     local shiftLevels <const> = defaults.shiftLevels
+                --     hwSigned = math.floor(0.5 + hwSigned * shiftLevels) / shiftLevels
+                -- end
+
                 local hueWheel = hwSigned - math.floor(hwSigned)
-                if active.fgBgFlag == 1 then
-                    active.hueBack = hueWheel
+
+                local isBack <const> = active.fgBgFlag == 1
+                local satWheel = isBack
+                    and active.satBack
+                    or active.satFore
+                local valWheel = isBack
+                    and active.valBack
+                    or active.valFore
+                local alphaWheel <const> = isBack
+                    and active.alphaBack
+                    or active.alphaFore
+
+                local rf <const>, gf <const>, bf <const> = hsvToRgb(hueWheel, satWheel, valWheel)
+
+                local args <const> = dlg.data
+                local rLevels <const> = args.rLevels or defaults.rLevels --[[@as integer]]
+                local gLevels <const> = args.gLevels or defaults.gLevels --[[@as integer]]
+                local bLevels <const> = args.bLevels or defaults.bLevels --[[@as integer]]
+
+                local rMax <const> = (1 << rLevels) - 1.0
+                local gMax <const> = (1 << gLevels) - 1.0
+                local bMax <const> = (1 << bLevels) - 1.0
+
+                local rf2 <const> = math.floor(rf * rMax + 0.5) / rMax
+                local gf2 <const> = math.floor(gf * gMax + 0.5) / gMax
+                local bf2 <const> = math.floor(bf * bMax + 0.5) / bMax
+
+                hueWheel, satWheel, valWheel = rgbToHsv(rf2, gf2, bf2)
+
+                if isBack then
+                    active.hueFore = hueWheel
                     app.command.SwitchColors()
                     app.fgColor = Color {
                         hue = hueWheel * 360.0,
-                        saturation = active.satBack,
-                        value = active.valBack,
-                        alpha = math.floor(active.alphaBack * 255.0 + 0.5)
+                        saturation = satWheel,
+                        value = valWheel,
+                        alpha = math.floor(alphaWheel * 255.0 + 0.5)
                     }
                     app.command.SwitchColors()
                 else
                     active.hueFore = hueWheel
                     app.fgColor = Color {
                         hue = hueWheel * 360.0,
-                        saturation = active.satFore,
-                        value = active.valFore,
-                        alpha = math.floor(active.alphaFore * 255.0 + 0.5)
+                        saturation = satWheel,
+                        value = valWheel,
+                        alpha = math.floor(alphaWheel * 255.0 + 0.5)
                     }
                 end
+
                 dlg:repaint()
             elseif active.mouseDownTri then
                 local ringInEdge <const> = defaults.ringInEdge
@@ -361,6 +392,10 @@ dlg:canvas {
 
                 local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hActive, 1.0, 1.0)
 
+                local rf <const> = (w1 * rBase + coeff) * wSumInv
+                local gf <const> = (w1 * gBase + coeff) * wSumInv
+                local bf <const> = (w1 * bBase + coeff) * wSumInv
+
                 local args <const> = dlg.data
                 local rLevels <const> = args.rLevels or defaults.rLevels --[[@as integer]]
                 local gLevels <const> = args.gLevels or defaults.gLevels --[[@as integer]]
@@ -370,17 +405,9 @@ dlg:canvas {
                 local gMax <const> = (1 << gLevels) - 1.0
                 local bMax <const> = (1 << bLevels) - 1.0
 
-                local rf <const> = (w1 * rBase + coeff) * wSumInv
-                local gf <const> = (w1 * gBase + coeff) * wSumInv
-                local bf <const> = (w1 * bBase + coeff) * wSumInv
-
-                local rl = math.floor(rf * rMax + 0.5)
-                local gl = math.floor(gf * gMax + 0.5)
-                local bl = math.floor(bf * bMax + 0.5)
-
-                local rf2 <const> = rl / rMax
-                local gf2 <const> = gl / gMax
-                local bf2 <const> = bl / bMax
+                local rf2 <const> = math.floor(rf * rMax + 0.5) / rMax
+                local gf2 <const> = math.floor(gf * gMax + 0.5) / gMax
+                local bf2 <const> = math.floor(bf * bMax + 0.5) / bMax
 
                 if active.fgBgFlag == 1 then
                     _, active.satBack, active.valBack = rgbToHsv(rf2, gf2, bf2)
@@ -527,13 +554,9 @@ dlg:canvas {
 
                 local rf <const>, gf <const>, bf <const> = hsvToRgb(hueWheel, 1.0, 1.0)
 
-                local rl = floor(rf * rMax + 0.5)
-                local gl = floor(gf * gMax + 0.5)
-                local bl = floor(bf * bMax + 0.5)
-
-                local r8 = floor(rl * rRatio + 0.5)
-                local g8 = floor(gl * gRatio + 0.5)
-                local b8 = floor(bl * bRatio + 0.5)
+                local r8 = floor(floor(rf * rMax + 0.5) * rRatio + 0.5)
+                local g8 = floor(floor(gf * gMax + 0.5) * gRatio + 0.5)
+                local b8 = floor(floor(bf * bMax + 0.5) * bRatio + 0.5)
 
                 byteStr = strpack("B B B B", r8, g8, b8, 255)
             elseif sqMag < sqRie then
@@ -561,13 +584,9 @@ dlg:canvas {
                     local gf <const> = (w1 * gBase + coeff) * wSumInv
                     local bf <const> = (w1 * bBase + coeff) * wSumInv
 
-                    local rl = floor(rf * rMax + 0.5)
-                    local gl = floor(gf * gMax + 0.5)
-                    local bl = floor(bf * bMax + 0.5)
-
-                    local r8 = floor(rl * rRatio + 0.5)
-                    local g8 = floor(gl * gRatio + 0.5)
-                    local b8 = floor(bl * bRatio + 0.5)
+                    local r8 = floor(floor(rf * rMax + 0.5) * rRatio + 0.5)
+                    local g8 = floor(floor(gf * gMax + 0.5) * gRatio + 0.5)
+                    local b8 = floor(floor(bf * bMax + 0.5) * bRatio + 0.5)
 
                     byteStr = strpack("B B B B", r8, g8, b8, 255)
                 end
@@ -667,7 +686,7 @@ dlg:slider {
     min = 1,
     max = 8,
     focus = false,
-    onchange = function() dlg: repaint() end
+    onchange = function() dlg:repaint() end
 }
 
 dlg:slider {
@@ -676,7 +695,7 @@ dlg:slider {
     min = 1,
     max = 8,
     focus = false,
-    onchange = function() dlg: repaint() end
+    onchange = function() dlg:repaint() end
 }
 
 dlg:slider {
@@ -685,7 +704,7 @@ dlg:slider {
     min = 1,
     max = 8,
     focus = false,
-    onchange = function() dlg: repaint() end
+    onchange = function() dlg:repaint() end
 }
 
 dlg:newrow { always = false }
