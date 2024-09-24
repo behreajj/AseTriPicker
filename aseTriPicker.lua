@@ -229,10 +229,10 @@ dlg:canvas {
                 local hueWheel = hwSigned - math.floor(hwSigned)
 
                 local isBack <const> = active.fgBgFlag == 1
-                local satWheel = isBack
+                local satWheel <const> = isBack
                     and active.satBack
                     or active.satFore
-                local valWheel = isBack
+                local valWheel <const> = isBack
                     and active.valBack
                     or active.valFore
                 local alphaWheel <const> = isBack
@@ -254,24 +254,30 @@ dlg:canvas {
                 local gf2 <const> = math.floor(gf * gMax + 0.5) / gMax
                 local bf2 <const> = math.floor(bf * bMax + 0.5) / bMax
 
-                hueWheel, satWheel, valWheel = rgbToHsv(rf2, gf2, bf2)
+                local hq <const>, sq <const>, vq <const> = rgbToHsv(rf2, gf2, bf2)
 
                 if isBack then
-                    active.hueFore = hueWheel
+                    active.hueBack = hueWheel
+                    active.satBack = sq
+                    active.valBack = vq
+
                     app.command.SwitchColors()
                     app.fgColor = Color {
-                        hue = hueWheel * 360.0,
-                        saturation = satWheel,
-                        value = valWheel,
+                        hue = hq * 360.0,
+                        saturation = sq,
+                        value = vq,
                         alpha = math.floor(alphaWheel * 255.0 + 0.5)
                     }
                     app.command.SwitchColors()
                 else
                     active.hueFore = hueWheel
+                    active.satFore = sq
+                    active.valFore = vq
+
                     app.fgColor = Color {
-                        hue = hueWheel * 360.0,
-                        saturation = satWheel,
-                        value = valWheel,
+                        hue = hq * 360.0,
+                        saturation = sq,
+                        value = vq,
                         alpha = math.floor(alphaWheel * 255.0 + 0.5)
                     }
                 end
@@ -360,24 +366,28 @@ dlg:canvas {
                 local gf2 <const> = math.floor(gf * gMax + 0.5) / gMax
                 local bf2 <const> = math.floor(bf * bMax + 0.5) / bMax
 
+                local hq <const>, sq <const>, vq <const> = rgbToHsv(rf2, gf2, bf2)
+
                 if active.fgBgFlag == 1 then
-                    _, active.satBack, active.valBack = rgbToHsv(rf2, gf2, bf2)
+                    active.satBack = sq
+                    active.valBack = vq
 
                     app.command.SwitchColors()
                     app.fgColor = Color {
-                        hue = hActive * 360.0,
-                        saturation = active.satBack,
-                        value = active.valBack,
+                        hue = hq * 360.0,
+                        saturation = sq,
+                        value = vq,
                         alpha = math.floor(active.alphaBack * 255.0 + 0.5)
                     }
                     app.command.SwitchColors()
                 else
-                    _, active.satFore, active.valFore = rgbToHsv(rf2, gf2, bf2)
+                    active.satFore = sq
+                    active.valFore = vq
 
                     app.fgColor = Color {
-                        hue = hActive * 360.0,
-                        saturation = active.satFore,
-                        value = active.valFore,
+                        hue = hq * 360.0,
+                        saturation = sq,
+                        value = vq,
                         alpha = math.floor(active.alphaFore * 255.0 + 0.5)
                     }
                 end
@@ -594,6 +604,8 @@ dlg:canvas {
 
             if vActive > 0.0 then
                 if sActive > 0.0 then
+                    -- TODO: This is no longer accurate because hue wheel
+                    -- is not quantized.
                     ctx:fillText(string.format(
                         "H: %.2f", hActive * 360), 2, 2)
                 end
