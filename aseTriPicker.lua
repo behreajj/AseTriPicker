@@ -1,8 +1,4 @@
 local defaults <const> = {
-    -- TODO: Up keys adjust value?
-    -- TODO: Way to edit alpha channel?
-    -- TODO: Cache R, G, B values and tri vertices
-    -- in active to reduce lag?
     wCanvas = 200,
     hCanvas = 200,
     xCenter = 100,
@@ -17,7 +13,10 @@ local defaults <const> = {
     swatchSize = 16,
     lrKeyIncr = 1.0 / 1080.0,
     retEps = 0.015,
-    levels = 24,
+    shiftLevels = 24,
+    rLevels = 8,
+    gLevels = 8,
+    bLevels = 8
 }
 
 local active <const> = {
@@ -29,18 +28,10 @@ local active <const> = {
     valFore = defaults.val,
     alphaFore = defaults.alpha,
 
-    w1Fore = 0.0,
-    w2Fore = 0.0,
-    w3Fore = 0.0,
-
     hueBack = defaults.hue,
     satBack = defaults.sat,
     valBack = defaults.val,
     alphaBack = defaults.alpha,
-
-    w1Back = 0.0,
-    w2Back = 0.0,
-    w3Back = 0.0,
 
     fgBgFlag = 0,
     mouseDownRing = false,
@@ -94,13 +85,7 @@ local function rgbToHsv(r, g, b)
     local mn <const> = math.min(r, gbmn)
     local chroma <const> = mx - mn
 
-    if chroma <= 0.0 then
-        local light <const> = (mx + mn) * 0.5
-        if light >= 1.0 then
-            return 0.0, 0.0, 1.0
-        end
-        return 0.0, 0.0, mx
-    end
+    if chroma <= 0.0 then return 0.0, 0.0, mx end
 
     local hue = 0.0
     if r == mx then
@@ -118,6 +103,7 @@ local function rgbToHsv(r, g, b)
     return hue / 6.0, chroma / mx, mx
 end
 
+-- TODO: These need to be set to levels.
 local initFgColor <const> = Color(app.fgColor)
 active.hueFore, active.satFore, active.valFore = rgbToHsv(
     initFgColor.red / 255.0,
@@ -125,6 +111,7 @@ active.hueFore, active.satFore, active.valFore = rgbToHsv(
     initFgColor.blue / 255.0)
 active.alphaFore = initFgColor.alpha / 255.0
 
+-- TODO: These need to be set to levels.
 local initBgColor <const> = Color(app.bgColor)
 active.hueBack, active.satBack, active.valBack = rgbToHsv(
     initBgColor.red / 255.0,
@@ -284,8 +271,8 @@ dlg:canvas {
 
                 local hwSigned = (angSigned + angOffset) * oneTau
                 if event.shiftKey then
-                    local levels <const> = defaults.levels
-                    hwSigned = math.floor(0.5 + hwSigned * levels) / levels
+                    local shiftLevels <const> = defaults.shiftLevels
+                    hwSigned = math.floor(0.5 + hwSigned * shiftLevels) / shiftLevels
                 end
                 local hueWheel = hwSigned - math.floor(hwSigned)
                 if active.fgBgFlag == 1 then
@@ -347,7 +334,8 @@ dlg:canvas {
                 local bwDenom <const> = yDiff2_3 * xDiff1_3 + xDiff3_2 * yDiff1_3
                 local bwDnmInv <const> = bwDenom ~= 0.0 and 1.0 / bwDenom or 0.0
 
-                -- TODO: Any way to optimize these?
+                -- TODO: Any way to optimize these? Maybe by multiplying
+                -- bwDnmInv times xbw and ybw?
                 local xbw <const> = xNorm - xTri3
                 local ybw <const> = yNorm - yTri3
                 local w1 <const> = math.min(math.max(
@@ -373,16 +361,29 @@ dlg:canvas {
 
                 local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hActive, 1.0, 1.0)
 
+                local args <const> = dlg.data
+                local rLevels <const> = args.rLevels or defaults.rLevels --[[@as integer]]
+                local gLevels <const> = args.gLevels or defaults.gLevels --[[@as integer]]
+                local bLevels <const> = args.bLevels or defaults.bLevels --[[@as integer]]
+
+                local rMax <const> = (1 << rLevels) - 1.0
+                local gMax <const> = (1 << gLevels) - 1.0
+                local bMax <const> = (1 << bLevels) - 1.0
+
                 local rf <const> = (w1 * rBase + coeff) * wSumInv
                 local gf <const> = (w1 * gBase + coeff) * wSumInv
                 local bf <const> = (w1 * bBase + coeff) * wSumInv
 
-                if active.fgBgFlag == 1 then
-                    _, active.satBack, active.valBack = rgbToHsv(rf, gf, bf)
+                local rl = math.floor(rf * rMax + 0.5)
+                local gl = math.floor(gf * gMax + 0.5)
+                local bl = math.floor(bf * bMax + 0.5)
 
-                    active.w1Back = w1
-                    active.w2Back = w2
-                    active.w3Back = w3
+                local rf2 <const> = rl / rMax
+                local gf2 <const> = gl / gMax
+                local bf2 <const> = bl / bMax
+
+                if active.fgBgFlag == 1 then
+                    _, active.satBack, active.valBack = rgbToHsv(rf2, gf2, bf2)
 
                     app.command.SwitchColors()
                     app.fgColor = Color {
@@ -393,11 +394,7 @@ dlg:canvas {
                     }
                     app.command.SwitchColors()
                 else
-                    _, active.satFore, active.valFore = rgbToHsv(rf, gf, bf)
-
-                    active.w1Fore = w1
-                    active.w2Fore = w2
-                    active.w3Fore = w3
+                    _, active.satFore, active.valFore = rgbToHsv(rf2, gf2, bf2)
 
                     app.fgColor = Color {
                         hue = hActive * 360.0,
@@ -413,7 +410,6 @@ dlg:canvas {
     end,
     onpaint = function(event)
         local angOffset <const> = defaults.angOffset
-        local retEps <const> = defaults.retEps
         local ringInEdge <const> = defaults.ringInEdge
 
         local sqRie <const> = ringInEdge * ringInEdge
@@ -435,6 +431,19 @@ dlg:canvas {
         local rCanvas <const> = (shortEdge - 1.0) * 0.5
         local rCanvasInv <const> = rCanvas ~= 0.0 and 1.0 / rCanvas or 0.0
 
+        local args <const> = dlg.data
+        local rLevels <const> = args.rLevels or defaults.rLevels --[[@as integer]]
+        local gLevels <const> = args.gLevels or defaults.gLevels --[[@as integer]]
+        local bLevels <const> = args.bLevels or defaults.bLevels --[[@as integer]]
+
+        local rMax <const> = (1 << rLevels) - 1.0
+        local gMax <const> = (1 << gLevels) - 1.0
+        local bMax <const> = (1 << bLevels) - 1.0
+
+        local rRatio <const> = 255.0 / rMax
+        local gRatio <const> = 255.0 / gMax
+        local bRatio <const> = 255.0 / bMax
+
         active.wCanvas = wCanvas
         active.hCanvas = hCanvas
 
@@ -443,27 +452,16 @@ dlg:canvas {
         local vActive = 0.0
         local tActive = 0.0
 
-        local w1Active = 0.0
-        local w2Active = 0.0
-        local w3Active = 0.0
         if active.fgBgFlag == 1 then
             hActive = active.hueBack
             sActive = active.satBack
             vActive = active.valBack
             tActive = active.alphaBack
-
-            w1Active = active.w1Back
-            w2Active = active.w2Back
-            w3Active = active.w3Back
         else
             hActive = active.hueFore
             sActive = active.satFore
             vActive = active.valFore
             tActive = active.alphaFore
-
-            w1Active = active.w1Fore
-            w2Active = active.w2Fore
-            w3Active = active.w3Fore
         end
 
         -- Find main point of the triangle.
@@ -498,13 +496,11 @@ dlg:canvas {
         local strpack <const> = string.pack
         local floor <const> = math.floor
         local atan <const> = math.atan
-        local abs <const> = math.abs
 
         local themeColors <const> = app.theme.color
         local bkgColor <const> = themeColors.window_face
         local textColor <const> = themeColors.text
 
-        -- local packZero <const> = strpack("B B B B", 0, 0, 0, 0)
         local packZero <const> = strpack("B B B B",
             bkgColor.red, bkgColor.green, bkgColor.blue, 255)
 
@@ -530,9 +526,14 @@ dlg:canvas {
                 local hueWheel <const> = (angSigned % tau) * oneTau
 
                 local rf <const>, gf <const>, bf <const> = hsvToRgb(hueWheel, 1.0, 1.0)
-                local r8 <const> = floor(rf * 255.0 + 0.5)
-                local g8 <const> = floor(gf * 255.0 + 0.5)
-                local b8 <const> = floor(bf * 255.0 + 0.5)
+
+                local rl = floor(rf * rMax + 0.5)
+                local gl = floor(gf * gMax + 0.5)
+                local bl = floor(bf * bMax + 0.5)
+
+                local r8 = floor(rl * rRatio + 0.5)
+                local g8 = floor(gl * gRatio + 0.5)
+                local b8 = floor(bl * bRatio + 0.5)
 
                 byteStr = strpack("B B B B", r8, g8, b8, 255)
             elseif sqMag < sqRie then
@@ -560,19 +561,13 @@ dlg:canvas {
                     local gf <const> = (w1 * gBase + coeff) * wSumInv
                     local bf <const> = (w1 * bBase + coeff) * wSumInv
 
-                    local r8 = floor(rf * 255 + 0.5)
-                    local g8 = floor(gf * 255 + 0.5)
-                    local b8 = floor(bf * 255 + 0.5)
+                    local rl = floor(rf * rMax + 0.5)
+                    local gl = floor(gf * gMax + 0.5)
+                    local bl = floor(bf * bMax + 0.5)
 
-                    -- Problem where reticle will be clamped to two sides of
-                    -- the triangle, but will go off the edge of the third.
-                    if abs(w1 - w1Active) < retEps
-                        and abs(w2 - w2Active) < retEps
-                        and abs(w3 - w3Active) < retEps then
-                        r8 = 255 - r8
-                        g8 = 255 - g8
-                        b8 = 255 - b8
-                    end
+                    local r8 = floor(rl * rRatio + 0.5)
+                    local g8 = floor(gl * gRatio + 0.5)
+                    local b8 = floor(bl * bRatio + 0.5)
 
                     byteStr = strpack("B B B B", r8, g8, b8, 255)
                 end
@@ -641,24 +636,59 @@ dlg:canvas {
             local rf <const>, gf <const>, bf <const> = hsvToRgb(
                 hActive, sActive, vActive)
 
+            local rf2 <const> = math.floor(rf * rMax + 0.5) / rMax
+            local gf2 <const> = math.floor(gf * gMax + 0.5) / gMax
+            local bf2 <const> = math.floor(bf * bMax + 0.5) / bMax
+
             ctx:fillText(string.format(
-                "R: %.2f%%", rf * 100), 2, 2 + yIncr * 4)
+                "R: %.2f%%", rf2 * 100), 2, 2 + yIncr * 4)
             ctx:fillText(string.format(
-                "G: %.2f%%", gf * 100), 2, 2 + yIncr * 5)
+                "G: %.2f%%", gf2 * 100), 2, 2 + yIncr * 5)
             ctx:fillText(string.format(
-                "B: %.2f%%", bf * 100), 2, 2 + yIncr * 6)
+                "B: %.2f%%", bf2 * 100), 2, 2 + yIncr * 6)
 
             ctx:fillText(string.format(
                 "A: %.2f%%", tActive * 100), 2, 2 + yIncr * 8)
+            local r8 <const> = floor(rf2 * 255 + 0.5)
+            local g8 <const> = floor(gf2 * 255 + 0.5)
+            local b8 <const> = floor(bf2 * 255 + 0.5)
 
-            local r8 <const> = floor(rf * 255 + 0.5)
-            local g8 <const> = floor(gf * 255 + 0.5)
-            local b8 <const> = floor(bf * 255 + 0.5)
             ctx:fillText(string.format(
                 "#%06x", r8 << 0x10|g8 << 0x08|b8), 2, 2 + yIncr * 10)
         end
     end,
 }
+
+dlg:newrow { always = false }
+
+dlg:slider {
+    id = "rLevels",
+    value = defaults.rLevels,
+    min = 1,
+    max = 8,
+    focus = false,
+    onchange = function() dlg: repaint() end
+}
+
+dlg:slider {
+    id = "gLevels",
+    value = defaults.gLevels,
+    min = 1,
+    max = 8,
+    focus = false,
+    onchange = function() dlg: repaint() end
+}
+
+dlg:slider {
+    id = "bLevels",
+    value = defaults.bLevels,
+    min = 1,
+    max = 8,
+    focus = false,
+    onchange = function() dlg: repaint() end
+}
+
+dlg:newrow { always = false }
 
 dlg:button {
     id = "getForeButton",
@@ -669,13 +699,23 @@ dlg:button {
         local g8 <const> = fgColor.green
         local b8 <const> = fgColor.blue
         local t8 <const> = fgColor.alpha
-        active.hueFore, active.satFore, active.valFore = rgbToHsv(
-            r8 / 255, g8 / 255, b8 / 255)
-        active.alphaFore = t8 / 255
 
-        active.w1Fore = 0.0
-        active.w2Fore = 0.0
-        active.w3Fore = 0.0
+        local args <const> = dlg.data
+        local rLevels <const> = args.rLevels or defaults.rLevels --[[@as integer]]
+        local gLevels <const> = args.gLevels or defaults.gLevels --[[@as integer]]
+        local bLevels <const> = args.bLevels or defaults.bLevels --[[@as integer]]
+
+        local rMax <const> = (1 << rLevels) - 1.0
+        local gMax <const> = (1 << gLevels) - 1.0
+        local bMax <const> = (1 << bLevels) - 1.0
+
+        local rf <const> = math.floor((r8 / 255.0) * rMax + 0.5) / rMax
+        local gf <const> = math.floor((g8 / 255.0) * gMax + 0.5) / gMax
+        local bf <const> = math.floor((b8 / 255.0) * bMax + 0.5) / bMax
+
+        active.hueFore, active.satFore, active.valFore = rgbToHsv(
+            rf, gf, bf)
+        active.alphaFore = t8 / 255.0
 
         dlg:repaint()
     end
@@ -691,14 +731,24 @@ dlg:button {
         local g8 <const> = bgColor.green
         local b8 <const> = bgColor.blue
         local t8 <const> = bgColor.alpha
+
+        local args <const> = dlg.data
+        local rLevels <const> = args.rLevels or defaults.rLevels --[[@as integer]]
+        local gLevels <const> = args.gLevels or defaults.gLevels --[[@as integer]]
+        local bLevels <const> = args.bLevels or defaults.bLevels --[[@as integer]]
+
+        local rMax <const> = (1 << rLevels) - 1.0
+        local gMax <const> = (1 << gLevels) - 1.0
+        local bMax <const> = (1 << bLevels) - 1.0
+
+        local rf <const> = math.floor((r8 / 255.0) * rMax + 0.5) / rMax
+        local gf <const> = math.floor((g8 / 255.0) * gMax + 0.5) / gMax
+        local bf <const> = math.floor((b8 / 255.0) * bMax + 0.5) / bMax
+
         app.command.SwitchColors()
         active.hueBack, active.satBack, active.valBack = rgbToHsv(
-            r8 / 255, g8 / 255, b8 / 255)
-        active.alphaBack = t8 / 255
-
-        active.w1Back = 0.0
-        active.w2Back = 0.0
-        active.w3Back = 0.0
+            rf, gf, bf)
+        active.alphaBack = t8 / 255.0
 
         dlg:repaint()
     end
