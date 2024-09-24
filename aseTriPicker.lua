@@ -126,55 +126,6 @@ dlg:canvas {
     focus = true,
     width = defaults.wCanvas,
     height = defaults.hCanvas,
-    onkeydown = function(event)
-        if event.code == "ArrowRight" then
-            if event.shiftKey then
-                active.fgBgFlag = 1
-                active.hueBack = (active.hueBack + defaults.lrKeyIncr) % 1.0
-                app.command.SwitchColors()
-                app.fgColor = Color {
-                    hue = active.hueBack * 360.0,
-                    saturation = active.satBack,
-                    value = active.valBack,
-                    alpha = math.floor(active.alphaBack * 255.0 + 0.5)
-                }
-                app.command.SwitchColors()
-            else
-                active.fgBgFlag = 0
-                active.hueFore = (active.hueFore + defaults.lrKeyIncr) % 1.0
-                app.fgColor = Color {
-                    hue = active.hueFore * 360.0,
-                    saturation = active.satFore,
-                    value = active.valFore,
-                    alpha = math.floor(active.alphaFore * 255.0 + 0.5)
-                }
-            end
-            dlg:repaint()
-        elseif event.code == "ArrowLeft" then
-            if event.shiftKey then
-                active.fgBgFlag = 1
-                active.hueBack = (active.hueBack - defaults.lrKeyIncr) % 1.0
-                app.command.SwitchColors()
-                app.fgColor = Color {
-                    hue = active.hueBack * 360.0,
-                    saturation = active.satBack,
-                    value = active.valBack,
-                    alpha = math.floor(active.alphaBack * 255.0 + 0.5)
-                }
-                app.command.SwitchColors()
-            else
-                active.fgBgFlag = 0
-                active.hueFore = (active.hueFore - defaults.lrKeyIncr) % 1.0
-                app.fgColor = Color {
-                    hue = active.hueFore * 360.0,
-                    saturation = active.satFore,
-                    value = active.valFore,
-                    alpha = math.floor(active.alphaFore * 255.0 + 0.5)
-                }
-            end
-            dlg:repaint()
-        end
-    end,
     onmousedown = function(event)
         local xMouseDown <const> = event.x
         local yMouseDown <const> = event.y
