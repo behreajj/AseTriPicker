@@ -1,10 +1,11 @@
 local defaults <const> = {
+    -- TODO: You'd need to refactor this completely to store the r,g,b active.
     wCanvas = 200,
     hCanvas = 200,
     xCenter = 100,
     yCenter = 100,
     ringInEdge = 0.9,
-    angOffset = 0.5235987755983,
+    angOffsetRadians = 0.5235987755983,
     hue = 0.0,
     sat = 1.0,
     val = 1.0,
@@ -216,7 +217,7 @@ dlg:canvas {
             local yNorm <const> = yDelta * rCanvasInv
 
             if active.mouseDownRing then
-                local angOffset <const> = defaults.angOffset
+                local angOffset <const> = defaults.angOffsetRadians
                 local oneTau <const> = 0.1591549430919
                 local angSigned <const> = math.atan(yNorm, xNorm)
 
@@ -259,8 +260,8 @@ dlg:canvas {
                 if isBack then
                     if vq > 0.0 then
                         if sq > 0.0 then
-                            active.hueBack = hueWheel
-                            -- active.hueBack = hq
+                            -- active.hueBack = hueWheel
+                            active.hueBack = hq
                         end
                         active.satBack = sq
                     end
@@ -268,26 +269,26 @@ dlg:canvas {
 
                     app.command.SwitchColors()
                     app.fgColor = Color {
-                        hue = hq * 360.0,
-                        saturation = sq,
-                        value = vq,
+                        red = math.floor(rq * 255.0 + 0.5),
+                        green = math.floor(gq * 255.0 + 0.5),
+                        blue = math.floor(bq * 255.0 + 0.5),
                         alpha = math.floor(alphaWheel * 255.0 + 0.5)
                     }
                     app.command.SwitchColors()
                 else
                     if vq > 0.0 then
                         if sq > 0.0 then
-                            active.hueFore = hueWheel
-                            -- active.hueFore = hq
+                            -- active.hueFore = hueWheel
+                            active.hueFore = hq
                         end
                         active.satFore = sq
                     end
                     active.valFore = vq
 
                     app.fgColor = Color {
-                        hue = hq * 360.0,
-                        saturation = sq,
-                        value = vq,
+                        red = math.floor(rq * 255.0 + 0.5),
+                        green = math.floor(gq * 255.0 + 0.5),
+                        blue = math.floor(bq * 255.0 + 0.5),
                         alpha = math.floor(alphaWheel * 255.0 + 0.5)
                     }
                 end
@@ -295,7 +296,7 @@ dlg:canvas {
                 dlg:repaint()
             elseif active.mouseDownTri then
                 local ringInEdge <const> = defaults.ringInEdge
-                local angOffset <const> = defaults.angOffset
+                local angOffset <const> = defaults.angOffsetRadians
                 local tau <const> = 6.2831853071796
                 local sqrt3_2 <const> = 0.86602540378444
 
@@ -372,42 +373,49 @@ dlg:canvas {
                 local gMax <const> = (1 << gLevels) - 1.0
                 local bMax <const> = (1 << bLevels) - 1.0
 
-                local rf2 <const> = math.floor(rf * rMax + 0.5) / rMax
-                local gf2 <const> = math.floor(gf * gMax + 0.5) / gMax
-                local bf2 <const> = math.floor(bf * bMax + 0.5) / bMax
+                local rq <const> = math.floor(rf * rMax + 0.5) / rMax
+                local gq <const> = math.floor(gf * gMax + 0.5) / gMax
+                local bq <const> = math.floor(bf * bMax + 0.5) / bMax
 
-                local hq <const>, sq <const>, vq <const> = rgbToHsv(rf2, gf2, bf2)
+                local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
+                -- local _, sActive, vActive = rgbToHsv(rf, gf, bf)
 
                 if active.fgBgFlag == 1 then
                     if vq > 0.0 then
                         if sq > 0.0 then
-                            -- active.hueBack = hq
+                            active.hueBack = hq
                         end
                         active.satBack = sq
                     end
                     active.valBack = vq
 
+                    -- if vActive > 0.0 then active.satBack = sActive end
+                    -- active.valBack = vActive
+
                     app.command.SwitchColors()
                     app.fgColor = Color {
-                        hue = hq * 360.0,
-                        saturation = sq,
-                        value = vq,
+                        red = math.floor(rq * 255.0 + 0.5),
+                        green = math.floor(gq * 255.0 + 0.5),
+                        blue = math.floor(bq * 255.0 + 0.5),
                         alpha = math.floor(active.alphaBack * 255.0 + 0.5)
                     }
                     app.command.SwitchColors()
                 else
                     if vq > 0.0 then
                         if sq > 0.0 then
-                            -- active.hueFore = hq
+                            active.hueFore = hq
                         end
                         active.satFore = sq
                     end
                     active.valFore = vq
 
+                    -- if vActive > 0.0 then active.satFore = sActive end
+                    -- active.valFore = vActive
+
                     app.fgColor = Color {
-                        hue = hq * 360.0,
-                        saturation = sq,
-                        value = vq,
+                        red = math.floor(rq * 255.0 + 0.5),
+                        green = math.floor(gq * 255.0 + 0.5),
+                        blue = math.floor(bq * 255.0 + 0.5),
                         alpha = math.floor(active.alphaFore * 255.0 + 0.5)
                     }
                 end
@@ -417,7 +425,7 @@ dlg:canvas {
         end
     end,
     onpaint = function(event)
-        local angOffset <const> = defaults.angOffset
+        local angOffset <const> = defaults.angOffsetRadians
         local ringInEdge <const> = defaults.ringInEdge
 
         local sqRie <const> = ringInEdge * ringInEdge
@@ -480,8 +488,8 @@ dlg:canvas {
             rqBack, gqBack, bqBack)
 
         local hActive = 0.0
-        -- local sActive = 0.0
-        -- local vActive = 0.0
+        local sActive = 0.0
+        local vActive = 0.0
         local tActive = 0.0
 
         local hqActive = 0.0
@@ -494,19 +502,19 @@ dlg:canvas {
 
         if active.fgBgFlag == 1 then
             hActive = active.hueBack
-            -- sActive = active.satBack
-            -- vActive = active.valBack
+            sActive = active.satBack
+            vActive = active.valBack
             tActive = active.alphaBack
 
             if vqBack > 0.0 then
                 if sqBack > 0.0 then
                     hqActive = hqBack
                 else
-                    hqActive = active.hueBack
+                    hqActive = hActive
                 end
                 sqActive = sqBack
             else
-                sqActive = active.satBack
+                sqActive = sActive
             end
             vqActive = vqBack
 
@@ -515,19 +523,19 @@ dlg:canvas {
             bqActive = bqBack
         else
             hActive = active.hueFore
-            -- sActive = active.satFore
-            -- vActive = active.valFore
+            sActive = active.satFore
+            vActive = active.valFore
             tActive = active.alphaFore
 
             if vqFore > 0.0 then
                 if sqFore > 0.0 then
                     hqActive = hqFore
                 else
-                    hqActive = active.hueFore
+                    hqActive = hActive
                 end
                 sqActive = sqFore
             else
-                sqActive = active.satFore
+                sqActive = sActive
             end
             vqActive = vqFore
 
@@ -537,8 +545,8 @@ dlg:canvas {
         end
 
         -- Find main point of the triangle.
-        local hActiveTheta <const> = (hActive * tau) - angOffset
-        -- local hActiveTheta <const> = (hqActive * tau) - angOffset
+        -- local hActiveTheta <const> = (hActive * tau) - angOffset
+        local hActiveTheta <const> = (hqActive * tau) - angOffset
         local xTri1 <const> = ringInEdge * math.cos(hActiveTheta)
         local yTri1 <const> = ringInEdge * math.sin(hActiveTheta)
 
@@ -563,8 +571,8 @@ dlg:canvas {
         local yDiff3_1 <const> = yTri3 - yTri1
         local bwDenom <const> = yDiff2_3 * xDiff1_3 + xDiff3_2 * yDiff1_3
         local bwDnmInv <const> = bwDenom ~= 0.0 and 1.0 / bwDenom or 0.0
-        local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hActive, 1.0, 1.0)
-        -- local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hqActive, 1.0, 1.0)
+        -- local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hActive, 1.0, 1.0)
+        local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hqActive, 1.0, 1.0)
 
         -- Cache method used in while loop.
         local strpack <const> = string.pack
@@ -662,9 +670,9 @@ dlg:canvas {
 
         -- Draw background color swatch.
         ctx.color = Color {
-            hue = hqBack * 360,
-            saturation = sqBack,
-            value = vqBack,
+            red = floor(rqBack * 255.0 + 0.5),
+            green = floor(gqBack * 255.0 + 0.5),
+            blue = floor(bqBack * 255.0 + 0.5),
             alpha = 255
         }
         ctx:fillRect(Rectangle(
@@ -673,9 +681,9 @@ dlg:canvas {
 
         -- Draw foreground color swatch.
         ctx.color = Color {
-            hue = hqFore * 360,
-            saturation = sqFore,
-            value = vqFore,
+            red = floor(rqFore * 255.0 + 0.5),
+            green = floor(gqFore * 255.0 + 0.5),
+            blue = floor(bqFore * 255.0 + 0.5),
             alpha = 255
         }
         ctx:fillRect(Rectangle(
@@ -690,16 +698,18 @@ dlg:canvas {
 
             ctx.color = textColor
 
-            if vqActive > 0.0 then
-                if sqActive > 0.0 then
-                    ctx:fillText(string.format(
-                        "H: %.2f", hqActive * 360), 2, 2)
-                end
+            if vActive > 0.0 and sActive > 0.0 then
                 ctx:fillText(string.format(
-                    "S: %.2f%%", sqActive * 100), 2, 2 + yIncr)
+                    "H: %.2f", hActive * 360), 2, 2)
             end
+
+            if vActive > 0.0 then
+                ctx:fillText(string.format(
+                    "S: %.2f%%", sActive * 100), 2, 2 + yIncr)
+            end
+
             ctx:fillText(string.format(
-                "V: %.2f%%", vqActive * 100), 2, 2 + yIncr * 2)
+                "V: %.2f%%", vActive * 100), 2, 2 + yIncr * 2)
 
             ctx:fillText(string.format(
                 "R: %.2f%%", rqActive * 100), 2, 2 + yIncr * 4)
