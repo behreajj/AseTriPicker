@@ -260,8 +260,8 @@ dlg:canvas {
                 if isBack then
                     if vq > 0.0 then
                         if sq > 0.0 then
-                            -- active.hueBack = hueWheel
-                            active.hueBack = hq
+                            active.hueBack = hueWheel
+                            -- active.hueBack = hq
                         end
                         active.satBack = sq
                     end
@@ -278,8 +278,8 @@ dlg:canvas {
                 else
                     if vq > 0.0 then
                         if sq > 0.0 then
-                            -- active.hueFore = hueWheel
-                            active.hueFore = hq
+                            active.hueFore = hueWheel
+                            -- active.hueFore = hq
                         end
                         active.satFore = sq
                     end
@@ -377,20 +377,20 @@ dlg:canvas {
                 local gq <const> = math.floor(gf * gMax + 0.5) / gMax
                 local bq <const> = math.floor(bf * bMax + 0.5) / bMax
 
-                local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
-                -- local _, sActive, vActive = rgbToHsv(rf, gf, bf)
+                -- local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
+                local _, sActive, vActive = rgbToHsv(rf, gf, bf)
 
                 if active.fgBgFlag == 1 then
-                    if vq > 0.0 then
-                        if sq > 0.0 then
-                            active.hueBack = hq
-                        end
-                        active.satBack = sq
-                    end
-                    active.valBack = vq
+                    -- if vq > 0.0 then
+                    --     if sq > 0.0 then
+                    --         active.hueBack = hq
+                    --     end
+                    --     active.satBack = sq
+                    -- end
+                    -- active.valBack = vq
 
-                    -- if vActive > 0.0 then active.satBack = sActive end
-                    -- active.valBack = vActive
+                    if vActive > 0.0 then active.satBack = sActive end
+                    active.valBack = vActive
 
                     app.command.SwitchColors()
                     app.fgColor = Color {
@@ -401,16 +401,16 @@ dlg:canvas {
                     }
                     app.command.SwitchColors()
                 else
-                    if vq > 0.0 then
-                        if sq > 0.0 then
-                            active.hueFore = hq
-                        end
-                        active.satFore = sq
-                    end
-                    active.valFore = vq
+                    -- if vq > 0.0 then
+                    --     if sq > 0.0 then
+                    --         active.hueFore = hq
+                    --     end
+                    --     active.satFore = sq
+                    -- end
+                    -- active.valFore = vq
 
-                    -- if vActive > 0.0 then active.satFore = sActive end
-                    -- active.valFore = vActive
+                    if vActive > 0.0 then active.satFore = sActive end
+                    active.valFore = vActive
 
                     app.fgColor = Color {
                         red = math.floor(rq * 255.0 + 0.5),
@@ -579,6 +579,12 @@ dlg:canvas {
         local floor <const> = math.floor
         local atan <const> = math.atan
 
+        local rbQuantized <const> = floor(rBase * rMax + 0.5) / rMax
+        local gbQuantized <const> = floor(gBase * gMax + 0.5) / gMax
+        local bbQuantized <const> = floor(bBase * bMax + 0.5) / bMax
+
+
+
         local themeColors <const> = app.theme.color
         local bkgColor <const> = themeColors.window_face
         local textColor <const> = themeColors.text
@@ -637,9 +643,13 @@ dlg:canvas {
                     local diagSq <const> = u * u + v * v
                     local coeff <const> = diagSq <= 0.0 and 0.0 or w2
 
-                    local rf <const> = (w1 * rBase + coeff) * wSumInv
-                    local gf <const> = (w1 * gBase + coeff) * wSumInv
-                    local bf <const> = (w1 * bBase + coeff) * wSumInv
+                    -- local rf <const> = (w1 * rBase + coeff) * wSumInv
+                    -- local gf <const> = (w1 * gBase + coeff) * wSumInv
+                    -- local bf <const> = (w1 * bBase + coeff) * wSumInv
+
+                    local rf<const> = (w1 * rbQuantized + coeff) * wSumInv
+                    local gf <const> = (w1 * gbQuantized + coeff) * wSumInv
+                    local bf <const> = (w1 * bbQuantized + coeff) * wSumInv
 
                     local r8 = floor(floor(rf * rMax + 0.5) * rRatio + 0.5)
                     local g8 = floor(floor(gf * gMax + 0.5) * gRatio + 0.5)
