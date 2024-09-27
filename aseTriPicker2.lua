@@ -131,13 +131,13 @@ local function rgbToHsv(r, g, b)
 end
 
 local function updateActiveFromLevels()
-    local rMax <const> = active.rMax or 1.0
-    local gMax <const> = active.gMax or 1.0
-    local bMax <const> = active.bMax or 1.0
+    local rMax <const> = active.rMax
+    local gMax <const> = active.gMax
+    local bMax <const> = active.bMax
 
-    local r01Fore <const> = active.redFore or 0.0
-    local g01Fore <const> = active.greenFore or 0.0
-    local b01Fore <const> = active.blueFore or 0.0
+    local r01Fore <const> = active.redFore
+    local g01Fore <const> = active.greenFore
+    local b01Fore <const> = active.blueFore
 
     local rqFore <const> = rMax ~= 0.0 and math.floor(r01Fore * rMax + 0.5) / rMax or 0.0
     local gqFore <const> = gMax ~= 0.0 and math.floor(g01Fore * gMax + 0.5) / gMax or 0.0
@@ -153,18 +153,15 @@ local function updateActiveFromLevels()
 
     if vqFore > 0.0 then
         if sqFore > 0.0 then
-            active.hueFore = hqFore
             active.hqFore = hqFore
         end
-        active.satFore = sqFore
         active.sqFore = sqFore
     end
-    active.valFore = vqFore
     active.vqFore = vqFore
 
-    local r01Back <const> = active.redBack or 0.0
-    local g01Back <const> = active.greenBack or 0.0
-    local b01Back <const> = active.blueBack or 0.0
+    local r01Back <const> = active.redBack
+    local g01Back <const> = active.greenBack
+    local b01Back <const> = active.blueBack
 
     local rqBack <const> = rMax ~= 0.0 and math.floor(r01Back * rMax + 0.5) / rMax or 0.0
     local gqBack <const> = gMax ~= 0.0 and math.floor(g01Back * gMax + 0.5) / gMax or 0.0
@@ -180,13 +177,10 @@ local function updateActiveFromLevels()
 
     if vqBack > 0.0 then
         if sqBack > 0.0 then
-            active.hueBack = hqBack
             active.hqBack = hqBack
         end
-        active.satBack = sqBack
         active.sqBack = sqBack
     end
-    active.valBack = vqBack
     active.vqBack = vqBack
 end
 
@@ -196,9 +190,9 @@ end
 ---@param t8 integer
 ---@param isBack boolean
 local function updateActiveFromRgba8(r8, g8, b8, t8, isBack)
-    local rMax <const> = active.rMax or 1.0
-    local gMax <const> = active.gMax or 1.0
-    local bMax <const> = active.bMax or 1.0
+    local rMax <const> = active.rMax
+    local gMax <const> = active.gMax
+    local bMax <const> = active.bMax
 
     local r01 <const> = r8 / 255.0
     local g01 <const> = g8 / 255.0
@@ -408,11 +402,6 @@ local function onPaint(event)
                 local rTri <const> = (w1 * rBase + coeff) * wSumInv
                 local gTri <const> = (w1 * gBase + coeff) * wSumInv
                 local bTri <const> = (w1 * bBase + coeff) * wSumInv
-
-                -- Quantized base.
-                -- local rTri <const> = (w1 * rbQuantized + coeff) * wSumInv
-                -- local gTri <const> = (w1 * gbQuantized + coeff) * wSumInv
-                -- local bTri <const> = (w1 * bbQuantized + coeff) * wSumInv
 
                 byteStr = strpack("B B B B",
                     -- Quantized
@@ -639,9 +628,9 @@ local function onMouseMove(event)
 
         local r01 <const>, g01 <const>, b01 <const> = hsvToRgb(hueWheel, satWheel, valWheel)
 
-        local rMax <const> = active.rMax or 1.0
-        local gMax <const> = active.gMax or 1.0
-        local bMax <const> = active.bMax or 1.0
+        local rMax <const> = active.rMax
+        local gMax <const> = active.gMax
+        local bMax <const> = active.bMax
 
         local rq <const> = math.floor(r01 * rMax + 0.5) / rMax
         local gq <const> = math.floor(g01 * gMax + 0.5) / gMax
@@ -669,11 +658,9 @@ local function onMouseMove(event)
             end
             active.vqBack = vq
 
-            if app.sprite then
-                app.command.SwitchColors()
-                app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
-                app.command.SwitchColors()
-            end
+            app.command.SwitchColors()
+            app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
+            app.command.SwitchColors()
         else
             active.hueFore = hueWheel
 
@@ -689,9 +676,7 @@ local function onMouseMove(event)
             end
             active.vqFore = vq
 
-            if app.sprite then
-                app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
-            end
+            app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
         end
     elseif isTri then
         local ringInEdge <const> = defaults.ringInEdge or 0.0
@@ -792,11 +777,9 @@ local function onMouseMove(event)
             end
             active.vqBack = vq
 
-            if app.sprite then
-                app.command.SwitchColors()
-                app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
-                app.command.SwitchColors()
-            end
+            app.command.SwitchColors()
+            app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
+            app.command.SwitchColors()
         else
             active.redFore = rq
             active.greenFore = gq
@@ -817,9 +800,7 @@ local function onMouseMove(event)
             end
             active.vqFore = vq
 
-            if app.sprite then
-                app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
-            end
+            app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
         end -- End front or back color check.
     end     -- End is in tri or wheel check.
 
@@ -841,32 +822,32 @@ local function onMouseUp(event)
     if xMouseUp >= 0 and xMouseUp < offset + swatchSize
         and yMouseUp >= hCanvas - swatchSize - 1 - offset
         and yMouseUp < hCanvas then
-        local hTemp <const> = active.hueBack or 0.0
-        local sTemp <const> = active.satBack or 0.0
-        local vTemp <const> = active.valBack or 0.0
+        local hTemp <const> = active.hueBack
+        local sTemp <const> = active.satBack
+        local vTemp <const> = active.valBack
 
-        local hqTemp <const> = active.hqBack or 0.0
-        local sqTemp <const> = active.sqBack or 0.0
-        local vqTemp <const> = active.vqBack or 0.0
+        local hqTemp <const> = active.hqBack
+        local sqTemp <const> = active.sqBack
+        local vqTemp <const> = active.vqBack
 
-        local aTemp <const> = active.alphaBack or 0.0
-        local rTemp <const> = active.redBack or 0.0
-        local gTemp <const> = active.greenBack or 0.0
-        local bTemp <const> = active.blueBack or 0.0
+        local aTemp <const> = active.alphaBack
+        local rTemp <const> = active.redBack
+        local gTemp <const> = active.greenBack
+        local bTemp <const> = active.blueBack
 
-        active.hueBack = active.hueFore or 0.0
-        active.satBack = active.satFore or 0.0
-        active.valBack = active.valFore or 0.0
+        active.hueBack = active.hueFore
+        active.satBack = active.satFore
+        active.valBack = active.valFore
 
-        active.hqBack = active.hqFore or 0.0
-        active.sqBack = active.sqFore or 0.0
-        active.vqBack = active.vqFore or 0.0
+        active.hqBack = active.hqFore
+        active.sqBack = active.sqFore
+        active.vqBack = active.vqFore
 
-        active.alphaBack = active.alphaFore or 0.0
+        active.alphaBack = active.alphaFore
 
-        active.redBack = active.redFore or 0.0
-        active.greenBack = active.greenFore or 0.0
-        active.blueBack = active.blueFore or 0.0
+        active.redBack = active.redFore
+        active.greenBack = active.greenFore
+        active.blueBack = active.blueFore
 
         active.hueFore = hTemp
         active.satFore = sTemp
@@ -966,11 +947,11 @@ dlg:button {
     text = "&BACK",
     onclick = function()
         app.command.SwitchColors()
-        local fgColor <const> = app.fgColor
-        local r8 <const> = fgColor.red
-        local g8 <const> = fgColor.green
-        local b8 <const> = fgColor.blue
-        local t8 <const> = fgColor.alpha
+        local bgColor <const> = app.fgColor
+        local r8 <const> = bgColor.red
+        local g8 <const> = bgColor.green
+        local b8 <const> = bgColor.blue
+        local t8 <const> = bgColor.alpha
         app.command.SwitchColors()
         updateActiveFromRgba8(r8, g8, b8, t8, true)
         dlg:repaint()
