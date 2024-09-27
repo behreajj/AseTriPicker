@@ -221,10 +221,10 @@ dlg:canvas {
                 local angSigned <const> = math.atan(yNorm, xNorm)
 
                 local hwSigned = (angSigned + angOffset) * oneTau
-                -- if event.shiftKey then
-                --     local shiftLevels <const> = defaults.shiftLevels
-                --     hwSigned = math.floor(0.5 + hwSigned * shiftLevels) / shiftLevels
-                -- end
+                if event.shiftKey then
+                    local shiftLevels <const> = defaults.shiftLevels
+                    hwSigned = math.floor(0.5 + hwSigned * shiftLevels) / shiftLevels
+                end
 
                 local hueWheel = hwSigned - math.floor(hwSigned)
 
@@ -250,15 +250,20 @@ dlg:canvas {
                 local gMax <const> = (1 << gLevels) - 1.0
                 local bMax <const> = (1 << bLevels) - 1.0
 
-                local rf2 <const> = math.floor(rf * rMax + 0.5) / rMax
-                local gf2 <const> = math.floor(gf * gMax + 0.5) / gMax
-                local bf2 <const> = math.floor(bf * bMax + 0.5) / bMax
+                local rq <const> = math.floor(rf * rMax + 0.5) / rMax
+                local gq <const> = math.floor(gf * gMax + 0.5) / gMax
+                local bq <const> = math.floor(bf * bMax + 0.5) / bMax
 
-                local hq <const>, sq <const>, vq <const> = rgbToHsv(rf2, gf2, bf2)
+                local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
 
                 if isBack then
-                    active.hueBack = hueWheel
-                    active.satBack = sq
+                    if vq > 0.0 then
+                        if sq > 0.0 then
+                            active.hueBack = hueWheel
+                            -- active.hueBack = hq
+                        end
+                        active.satBack = sq
+                    end
                     active.valBack = vq
 
                     app.command.SwitchColors()
@@ -270,8 +275,13 @@ dlg:canvas {
                     }
                     app.command.SwitchColors()
                 else
-                    active.hueFore = hueWheel
-                    active.satFore = sq
+                    if vq > 0.0 then
+                        if sq > 0.0 then
+                            active.hueFore = hueWheel
+                            -- active.hueFore = hq
+                        end
+                        active.satFore = sq
+                    end
                     active.valFore = vq
 
                     app.fgColor = Color {
@@ -369,7 +379,12 @@ dlg:canvas {
                 local hq <const>, sq <const>, vq <const> = rgbToHsv(rf2, gf2, bf2)
 
                 if active.fgBgFlag == 1 then
-                    active.satBack = sq
+                    if vq > 0.0 then
+                        if sq > 0.0 then
+                            -- active.hueBack = hq
+                        end
+                        active.satBack = sq
+                    end
                     active.valBack = vq
 
                     app.command.SwitchColors()
@@ -381,7 +396,12 @@ dlg:canvas {
                     }
                     app.command.SwitchColors()
                 else
-                    active.satFore = sq
+                    if vq > 0.0 then
+                        if sq > 0.0 then
+                            -- active.hueFore = hq
+                        end
+                        active.satFore = sq
+                    end
                     active.valFore = vq
 
                     app.fgColor = Color {
@@ -435,25 +455,90 @@ dlg:canvas {
         active.wCanvas = wCanvas
         active.hCanvas = hCanvas
 
+        local rfFore <const>, gfFore <const>, bfFore <const> = hsvToRgb(
+            active.hueFore,
+            active.satFore,
+            active.valFore)
+
+        local rqFore <const> = math.floor(rfFore * rMax + 0.5) / rMax
+        local gqFore <const> = math.floor(gfFore * gMax + 0.5) / gMax
+        local bqFore <const> = math.floor(bfFore * bMax + 0.5) / bMax
+
+        local hqFore <const>, sqFore <const>, vqFore <const> = rgbToHsv(
+            rqFore, gqFore, bqFore)
+
+        local rfBack <const>, gfBack <const>, bfBack <const> = hsvToRgb(
+            active.hueBack,
+            active.satBack,
+            active.valBack)
+
+        local rqBack <const> = math.floor(rfBack * rMax + 0.5) / rMax
+        local gqBack <const> = math.floor(gfBack * gMax + 0.5) / gMax
+        local bqBack <const> = math.floor(bfBack * bMax + 0.5) / bMax
+
+        local hqBack <const>, sqBack <const>, vqBack <const> = rgbToHsv(
+            rqBack, gqBack, bqBack)
+
         local hActive = 0.0
-        local sActive = 0.0
-        local vActive = 0.0
+        -- local sActive = 0.0
+        -- local vActive = 0.0
         local tActive = 0.0
+
+        local hqActive = 0.0
+        local sqActive = 0.0
+        local vqActive = 0.0
+
+        local rqActive = 0.0
+        local gqActive = 0.0
+        local bqActive = 0.0
 
         if active.fgBgFlag == 1 then
             hActive = active.hueBack
-            sActive = active.satBack
-            vActive = active.valBack
+            -- sActive = active.satBack
+            -- vActive = active.valBack
             tActive = active.alphaBack
+
+            if vqBack > 0.0 then
+                if sqBack > 0.0 then
+                    hqActive = hqBack
+                else
+                    hqActive = active.hueBack
+                end
+                sqActive = sqBack
+            else
+                sqActive = active.satBack
+            end
+            vqActive = vqBack
+
+            rqActive = rqBack
+            gqActive = gqBack
+            bqActive = bqBack
         else
             hActive = active.hueFore
-            sActive = active.satFore
-            vActive = active.valFore
+            -- sActive = active.satFore
+            -- vActive = active.valFore
             tActive = active.alphaFore
+
+            if vqFore > 0.0 then
+                if sqFore > 0.0 then
+                    hqActive = hqFore
+                else
+                    hqActive = active.hueFore
+                end
+                sqActive = sqFore
+            else
+                sqActive = active.satFore
+            end
+            vqActive = vqFore
+
+            rqActive = rqFore
+            gqActive = gqFore
+            bqActive = bqFore
         end
 
         -- Find main point of the triangle.
         local hActiveTheta <const> = (hActive * tau) - angOffset
+        -- local hActiveTheta <const> = (hqActive * tau) - angOffset
         local xTri1 <const> = ringInEdge * math.cos(hActiveTheta)
         local yTri1 <const> = ringInEdge * math.sin(hActiveTheta)
 
@@ -479,6 +564,7 @@ dlg:canvas {
         local bwDenom <const> = yDiff2_3 * xDiff1_3 + xDiff3_2 * yDiff1_3
         local bwDnmInv <const> = bwDenom ~= 0.0 and 1.0 / bwDenom or 0.0
         local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hActive, 1.0, 1.0)
+        -- local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hqActive, 1.0, 1.0)
 
         -- Cache method used in while loop.
         local strpack <const> = string.pack
@@ -515,6 +601,8 @@ dlg:canvas {
 
                 local rf <const>, gf <const>, bf <const> = hsvToRgb(hueWheel, 1.0, 1.0)
 
+                -- TODO: Do not need to quantize this, since hue quantize
+                -- doesn't correspond to RGB quantize anyway.
                 local r8 = floor(floor(rf * rMax + 0.5) * rRatio + 0.5)
                 local g8 = floor(floor(gf * gMax + 0.5) * gRatio + 0.5)
                 local b8 = floor(floor(bf * bMax + 0.5) * bRatio + 0.5)
@@ -574,9 +662,9 @@ dlg:canvas {
 
         -- Draw background color swatch.
         ctx.color = Color {
-            hue = active.hueBack * 360,
-            saturation = active.satBack,
-            value = active.valBack,
+            hue = hqBack * 360,
+            saturation = sqBack,
+            value = vqBack,
             alpha = 255
         }
         ctx:fillRect(Rectangle(
@@ -585,9 +673,9 @@ dlg:canvas {
 
         -- Draw foreground color swatch.
         ctx.color = Color {
-            hue = active.hueFore * 360,
-            saturation = active.satFore,
-            value = active.valFore,
+            hue = hqFore * 360,
+            saturation = sqFore,
+            value = vqFore,
             alpha = 255
         }
         ctx:fillRect(Rectangle(
@@ -602,38 +690,29 @@ dlg:canvas {
 
             ctx.color = textColor
 
-            if vActive > 0.0 then
-                if sActive > 0.0 then
-                    -- TODO: This is no longer accurate because hue wheel
-                    -- is not quantized.
+            if vqActive > 0.0 then
+                if sqActive > 0.0 then
                     ctx:fillText(string.format(
-                        "H: %.2f", hActive * 360), 2, 2)
+                        "H: %.2f", hqActive * 360), 2, 2)
                 end
                 ctx:fillText(string.format(
-                    "S: %.2f%%", sActive * 100), 2, 2 + yIncr)
+                    "S: %.2f%%", sqActive * 100), 2, 2 + yIncr)
             end
             ctx:fillText(string.format(
-                "V: %.2f%%", vActive * 100), 2, 2 + yIncr * 2)
-
-            local rf <const>, gf <const>, bf <const> = hsvToRgb(
-                hActive, sActive, vActive)
-
-            local rf2 <const> = math.floor(rf * rMax + 0.5) / rMax
-            local gf2 <const> = math.floor(gf * gMax + 0.5) / gMax
-            local bf2 <const> = math.floor(bf * bMax + 0.5) / bMax
+                "V: %.2f%%", vqActive * 100), 2, 2 + yIncr * 2)
 
             ctx:fillText(string.format(
-                "R: %.2f%%", rf2 * 100), 2, 2 + yIncr * 4)
+                "R: %.2f%%", rqActive * 100), 2, 2 + yIncr * 4)
             ctx:fillText(string.format(
-                "G: %.2f%%", gf2 * 100), 2, 2 + yIncr * 5)
+                "G: %.2f%%", gqActive * 100), 2, 2 + yIncr * 5)
             ctx:fillText(string.format(
-                "B: %.2f%%", bf2 * 100), 2, 2 + yIncr * 6)
+                "B: %.2f%%", bqActive * 100), 2, 2 + yIncr * 6)
 
             ctx:fillText(string.format(
                 "A: %.2f%%", tActive * 100), 2, 2 + yIncr * 8)
-            local r8 <const> = floor(rf2 * 255 + 0.5)
-            local g8 <const> = floor(gf2 * 255 + 0.5)
-            local b8 <const> = floor(bf2 * 255 + 0.5)
+            local r8 <const> = floor(rqActive * 255 + 0.5)
+            local g8 <const> = floor(gqActive * 255 + 0.5)
+            local b8 <const> = floor(bqActive * 255 + 0.5)
 
             ctx:fillText(string.format(
                 "#%06x", r8 << 0x10|g8 << 0x08|b8), 2, 2 + yIncr * 10)
