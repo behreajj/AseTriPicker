@@ -22,9 +22,13 @@ When the canvas has focus, left click will change the foreground color and right
 
 When the picker is wider than it is high, it will show text information about the color. Hue is expressed in degrees; other color data is expressed in percentages.
 
-In HSV, when a color's saturation is zero, its hue is undefined. When it's value is zero, both its hue and its saturation are undefined. This is easier to understand by visualizing the HSV model as an upside-down cone. Ultimately, the [HSV](https://en.wikipedia.org/wiki/HSL_and_HSV#Disadvantages) method for representing color is deeply flawed. Neither this color picker, nor HSV in general, should be used to create harmonious colors or determine shades of a hue.
+In HSV, when a color's saturation is zero, its hue is undefined. When it's value is zero, both its hue and its saturation are undefined. This is easier to understand by visualizing the HSV model as an upside-down cone.
 
-I would encourage readers to research alternatives like [CIE LAB](https://en.wikipedia.org/wiki/CIELAB_color_space), [SRLAB2](https://www.magnetkern.de/srlab2.html), [OK LAB](https://bottosson.github.io/posts/oklab/), [HSLuv](https://www.hsluv.org/) or [Okhsl](https://bottosson.github.io/posts/colorpicker/). An SR LAB 2 picker is available at [AsepriteAddons](https://github.com/behreajj/AsepriteAddons); an Okhsl picker can be found [here](https://github.com/behreajj/asepriteokhsl).
+![Quantized Screen Cap](screenCap2.png)
+
+Colors may be quantized to a bit depth in RGB using the sliders beneath the canvas. Beware that quantization will lead to significant hue shift between colors within the same shading triangle.
+
+Ultimately, the [HSV](https://en.wikipedia.org/wiki/HSL_and_HSV#Disadvantages) method for representing color is deeply flawed. Neither this color picker, nor HSV in general, should be used to create harmonious colors or determine shades of a hue. I would encourage readers to research alternatives like [CIE LAB](https://en.wikipedia.org/wiki/CIELAB_color_space), [SRLAB2](https://www.magnetkern.de/srlab2.html), [OK LAB](https://bottosson.github.io/posts/oklab/), [HSLuv](https://www.hsluv.org/) or [Okhsl](https://bottosson.github.io/posts/colorpicker/). An SR LAB 2 picker is available at [AsepriteAddons](https://github.com/behreajj/AsepriteAddons); an Okhsl picker can be found [here](https://github.com/behreajj/asepriteokhsl).
 
 ## Modification
 

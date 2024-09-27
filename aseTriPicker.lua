@@ -3,7 +3,7 @@ local oneTau <const> = 0.1591549430919
 local sqrt3_2 <const> = 0.86602540378444
 
 local defaults <const> = {
-    -- Sliders.
+    -- TODO: Alpha adjustment slider?
     rLevels = 8,
     gLevels = 8,
     bLevels = 8,
