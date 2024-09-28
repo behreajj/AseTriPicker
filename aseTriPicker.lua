@@ -49,17 +49,17 @@ local active <const> = {
 
     alphaFore = defaults.alpha,
 
-    hueBack = defaults.hue,
+    hueBack = defaults.hue + 0.5,
     satBack = defaults.sat,
     valBack = defaults.val,
 
-    hqBack = defaults.hue,
+    hqBack = defaults.hue + 0.5,
     sqBack = defaults.sat,
     vqBack = defaults.val,
 
-    redBack = defaults.red,
-    greenBack = defaults.green,
-    blueBack = defaults.blue,
+    redBack = 1.0 - defaults.red,
+    greenBack = 1.0 - defaults.green,
+    blueBack = 1.0 - defaults.blue,
 
     alphaBack = defaults.alpha,
 
