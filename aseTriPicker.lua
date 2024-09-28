@@ -375,9 +375,6 @@ local function onPaint(event)
 
                 255)
         elseif sqMag < sqRie then
-            -- TODO: Move the triangle mouse move part into its own function,
-            -- as it should be called both by mouse down and mouse move.
-
             -- Inscribed triangle.
             local xbw <const> = xNorm - xTri3
             local ybw <const> = yNorm - yTri3
@@ -438,10 +435,10 @@ local function onPaint(event)
 
     -- Draw background color swatch.
     ctx.color = Color {
-        red = floor(redBack * 255 + 0.5),
-        green = floor(greenBack * 255 + 0.5),
-        blue = floor(blueBack * 255 + 0.5),
-        alpha = 255
+        r = floor(redBack * 255 + 0.5),
+        g = floor(greenBack * 255 + 0.5),
+        b = floor(blueBack * 255 + 0.5),
+        a = 255
     }
     ctx:fillRect(Rectangle(
         offset, hCanvas - swatchSize - 1,
@@ -449,10 +446,10 @@ local function onPaint(event)
 
     -- Draw foreground color swatch.
     ctx.color = Color {
-        red = floor(redFore * 255 + 0.5),
-        green = floor(greenFore * 255 + 0.5),
-        blue = floor(blueFore * 255 + 0.5),
-        alpha = 255
+        r = floor(redFore * 255 + 0.5),
+        g = floor(greenFore * 255 + 0.5),
+        b = floor(blueFore * 255 + 0.5),
+        a = 255
     }
     ctx:fillRect(Rectangle(
         0, hCanvas - swatchSize - 1 - offset,
@@ -566,9 +563,9 @@ local function onMouseMove(event)
     local yNorm <const> = yDelta * rCanvasInv
 
     local isBackActive <const> = active.isBackActive
-    local alphaWheel <const> = isBackActive
-        and (active.alphaBack or 1.0)
-        or (active.alphaFore or 1.0)
+    -- local alphaWheel <const> = isBackActive
+    --     and (active.alphaBack or 1.0)
+    --     or (active.alphaFore or 1.0)
 
     if isRing then
         local angSigned <const> = math.atan(yNorm, xNorm)
@@ -600,7 +597,7 @@ local function onMouseMove(event)
         local r8 <const> = math.floor(rq * 255.0 + 0.5)
         local g8 <const> = math.floor(gq * 255.0 + 0.5)
         local b8 <const> = math.floor(bq * 255.0 + 0.5)
-        local t8 <const> = math.floor(alphaWheel * 255.0 + 0.5)
+        -- local t8 <const> = math.floor(alphaWheel * 255.0 + 0.5)
 
         local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
 
@@ -713,7 +710,7 @@ local function onMouseMove(event)
         local r8 <const> = math.floor(rq * 255.0 + 0.5)
         local g8 <const> = math.floor(gq * 255.0 + 0.5)
         local b8 <const> = math.floor(bq * 255.0 + 0.5)
-        local t8 <const> = math.floor(alphaWheel * 255.0 + 0.5)
+        -- local t8 <const> = math.floor(alphaWheel * 255.0 + 0.5)
 
         local _ <const>, so <const>, vo <const> = rgbToHsv(r01, g01, b01)
         local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
