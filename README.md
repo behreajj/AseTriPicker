@@ -14,9 +14,9 @@ To use this script, open Aseprite. In the menu bar, go to `File > Scripts > Open
 
 If an error message in Aseprite's console appears, check if the script folder is on a file path that includes characters beyond ASCII, such as 'é' (e acute) or 'ö' (o umlaut).
 
-A hot key can be assigned to the script by going to `Edit > Keyboard Shortcuts`. The search input box in the top left of the shortcuts dialog can be used to locate the script by its file name. The dialog can be closed with `Alt+X`. The foreground color can be retrieved with `Alt+F`; the background color, with `Alt+B`.
+A hot key can be assigned to the script by going to `Edit > Keyboard Shortcuts`. The search input box in the top left of the shortcuts dialog can be used to locate the script by its file name. The dialog can be closed with `Alt+X`. The foreground color can be retrieved with `Alt+F`; the background color, with `Alt+B`. `Alt+I` will pick a color from the sprite canvas at the cursor position.
 
-When the canvas has focus, left click will change the foreground color and right click will adjust the background color. Clicking on the swatches in the bottom-left corner will swap the fore and background color.
+When the dialog has focus, left click will change the foreground color and right click will adjust the background color. Clicking on the swatches in the bottom-left corner will swap the fore and background color.
 
 ![Expanded Screen Cap](screenCap1.png)
 
