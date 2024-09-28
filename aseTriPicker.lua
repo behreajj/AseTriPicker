@@ -4,8 +4,6 @@ local sqrt3_2 <const> = 0.86602540378444
 
 local defaults <const> = {
     -- TODO: Alpha adjustment slider?
-    -- TODO: Move the triangle mouse move part into its own function,
-    -- as it should be called both by mouse down and mouse move.
     rLevels = 8,
     gLevels = 8,
     bLevels = 8,
@@ -378,6 +376,9 @@ local function onPaint(event)
 
                 255)
         elseif sqMag < sqRie then
+            -- TODO: Move the triangle mouse move part into its own function,
+            -- as it should be called both by mouse down and mouse move.
+
             -- Inscribed triangle.
             local xbw <const> = xNorm - xTri3
             local ybw <const> = yNorm - yTri3
@@ -539,44 +540,6 @@ local function onPaint(event)
 end
 
 local dlg <const> = Dialog { title = "Color Picker" }
-
----@param event MouseEvent
-local function onMouseDown(event)
-    local xMouseDown <const> = event.x
-    local yMouseDown <const> = event.y
-
-    local ringInEdge <const> = defaults.ringInEdge or 0.9
-    local sqRie <const> = ringInEdge * ringInEdge
-
-    local wCanvas <const> = active.wCanvas or 200
-    local hCanvas <const> = active.hCanvas or 200
-    local xCenter <const> = wCanvas * 0.5
-    local yCenter <const> = hCanvas * 0.5
-    local shortEdge <const> = math.min(wCanvas, hCanvas)
-    local rCanvas <const> = (shortEdge - 1.0) * 0.5
-    local rCanvasInv <const> = rCanvas ~= 0.0 and 1.0 / rCanvas or 0.0
-
-    local xDelta <const> = xMouseDown - xCenter
-    local yDelta <const> = yCenter - yMouseDown
-
-    local xNorm <const> = xDelta * rCanvasInv
-    local yNorm <const> = yDelta * rCanvasInv
-
-    local sqMag <const> = xNorm * xNorm + yNorm * yNorm
-    if (not active.mouseDownTri) and (sqMag >= sqRie and sqMag <= 1.0) then
-        active.mouseDownRing = true
-        if event.button == MouseButton.RIGHT then
-            active.isBackActive = true
-        end
-    end
-
-    if (not active.mouseDownRing) and (sqMag < sqRie) then
-        active.mouseDownTri = true
-        if event.button == MouseButton.RIGHT then
-            active.isBackActive = true
-        end
-    end
-end
 
 ---@param event MouseEvent
 local function onMouseMove(event)
@@ -804,6 +767,46 @@ local function onMouseMove(event)
     end     -- End is in tri or wheel check.
 
     dlg:repaint()
+end
+
+---@param event MouseEvent
+local function onMouseDown(event)
+    local xMouseDown <const> = event.x
+    local yMouseDown <const> = event.y
+
+    local ringInEdge <const> = defaults.ringInEdge or 0.9
+    local sqRie <const> = ringInEdge * ringInEdge
+
+    local wCanvas <const> = active.wCanvas or 200
+    local hCanvas <const> = active.hCanvas or 200
+    local xCenter <const> = wCanvas * 0.5
+    local yCenter <const> = hCanvas * 0.5
+    local shortEdge <const> = math.min(wCanvas, hCanvas)
+    local rCanvas <const> = (shortEdge - 1.0) * 0.5
+    local rCanvasInv <const> = rCanvas ~= 0.0 and 1.0 / rCanvas or 0.0
+
+    local xDelta <const> = xMouseDown - xCenter
+    local yDelta <const> = yCenter - yMouseDown
+
+    local xNorm <const> = xDelta * rCanvasInv
+    local yNorm <const> = yDelta * rCanvasInv
+
+    local sqMag <const> = xNorm * xNorm + yNorm * yNorm
+    if (not active.mouseDownTri) and (sqMag >= sqRie and sqMag <= 1.0) then
+        active.mouseDownRing = true
+        if event.button == MouseButton.RIGHT then
+            active.isBackActive = true
+        end
+    end
+
+    if (not active.mouseDownRing) and (sqMag < sqRie) then
+        active.mouseDownTri = true
+        if event.button == MouseButton.RIGHT then
+            active.isBackActive = true
+        end
+    end
+
+    onMouseMove(event)
 end
 
 ---@param event MouseEvent
