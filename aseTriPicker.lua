@@ -4,6 +4,8 @@ local sqrt3_2 <const> = 0.86602540378444
 
 local defaults <const> = {
     -- TODO: Alpha adjustment slider?
+    -- TODO: Move the triangle mouse move part into its own function,
+    -- as it should be called both by mouse down and mouse move.
     rLevels = 8,
     gLevels = 8,
     bLevels = 8,
@@ -139,9 +141,9 @@ local function updateActiveFromLevels()
     local g01Fore <const> = active.greenFore
     local b01Fore <const> = active.blueFore
 
-    local rqFore <const> = rMax ~= 0.0 and math.floor(r01Fore * rMax + 0.5) / rMax or 0.0
-    local gqFore <const> = gMax ~= 0.0 and math.floor(g01Fore * gMax + 0.5) / gMax or 0.0
-    local bqFore <const> = bMax ~= 0.0 and math.floor(b01Fore * bMax + 0.5) / bMax or 0.0
+    local rqFore <const> = math.floor(r01Fore * rMax + 0.5) / rMax
+    local gqFore <const> = math.floor(g01Fore * gMax + 0.5) / gMax
+    local bqFore <const> = math.floor(b01Fore * bMax + 0.5) / bMax
 
     active.redFore = rqFore
     active.greenFore = gqFore
@@ -163,9 +165,9 @@ local function updateActiveFromLevels()
     local g01Back <const> = active.greenBack
     local b01Back <const> = active.blueBack
 
-    local rqBack <const> = rMax ~= 0.0 and math.floor(r01Back * rMax + 0.5) / rMax or 0.0
-    local gqBack <const> = gMax ~= 0.0 and math.floor(g01Back * gMax + 0.5) / gMax or 0.0
-    local bqBack <const> = bMax ~= 0.0 and math.floor(b01Back * bMax + 0.5) / bMax or 0.0
+    local rqBack <const> = math.floor(r01Back * rMax + 0.5) / rMax
+    local gqBack <const> = math.floor(g01Back * gMax + 0.5) / gMax
+    local bqBack <const> = math.floor(b01Back * bMax + 0.5) / bMax
 
     active.redBack = rqBack
     active.greenBack = gqBack
@@ -194,10 +196,7 @@ local function updateActiveFromRgba8(r8, g8, b8, t8, isBack)
     local gMax <const> = active.gMax
     local bMax <const> = active.bMax
 
-    local r01 <const> = r8 / 255.0
-    local g01 <const> = g8 / 255.0
-    local b01 <const> = b8 / 255.0
-
+    local r01 <const>, g01 <const>, b01 <const> = r8 / 255.0, g8 / 255.0, b8 / 255.0
     local rq <const> = rMax ~= 0.0 and math.floor((r01) * rMax + 0.5) / rMax or 0.0
     local gq <const> = gMax ~= 0.0 and math.floor((g01) * gMax + 0.5) / gMax or 0.0
     local bq <const> = bMax ~= 0.0 and math.floor((b01) * bMax + 0.5) / bMax or 0.0
@@ -955,6 +954,89 @@ dlg:button {
         app.command.SwitchColors()
         updateActiveFromRgba8(r8, g8, b8, t8, true)
         dlg:repaint()
+    end
+}
+
+dlg:button {
+    id = "pickButton",
+    text = "P&ICK",
+    onclick = function()
+        local editor <const> = app.editor
+        if not editor then return end
+
+        local mouse <const> = editor.spritePos
+        local x = mouse.x
+        local y = mouse.y
+
+        local sprite <const> = app.sprite
+        if not sprite then return end
+
+        local frame <const> = app.frame or sprite.frames[1]
+
+        local docPrefs <const> = app.preferences.document(sprite)
+        local tiledMode <const> = docPrefs.tiled.mode
+
+        if tiledMode == 3 then
+            -- Tiling on both axes.
+            x = x % sprite.width
+            y = y % sprite.height
+        elseif tiledMode == 2 then
+            -- Vertical tiling.
+            y = y % sprite.height
+        elseif tiledMode == 1 then
+            -- Horizontal tiling.
+            x = x % sprite.width
+        end
+
+        local spriteSpec <const> = sprite.spec
+        local colorMode <const> = spriteSpec.colorMode
+        local mouseSpec <const> = ImageSpec {
+            width = 1,
+            height = 1,
+            colorMode = colorMode,
+            transparentColor = spriteSpec.transparentColor
+        }
+        mouseSpec.colorSpace = spriteSpec.colorSpace
+        local flat <const> = Image(mouseSpec)
+        flat:drawSprite(sprite, frame, Point(-x, -y))
+        local bpp <const> = flat.bytesPerPixel
+        local bytes <const> = flat.bytes
+        local pixel <const> = string.unpack("<I" .. bpp, bytes)
+
+        -- print(string.format("x: %d, y: %d, p: %x", x, y, pixel))
+
+        local r8, g8, b8, t8 = 0, 0, 0, 0
+        if colorMode == ColorMode.INDEXED then
+            local palette <const> = sprite.palettes[1]
+            local lenPalette <const> = #palette
+            if pixel >= 0 and pixel < lenPalette then
+                local aseColor <const> = palette:getColor(pixel)
+                r8 = aseColor.red
+                g8 = aseColor.green
+                b8 = aseColor.blue
+                t8 = aseColor.alpha
+            end
+        elseif colorMode == ColorMode.GRAY then
+            local v8 <const> = pixel >> 0x00 & 0xff
+            r8, g8, b8 = v8, v8, v8
+            t8 = pixel >> 0x08 & 0xff
+        else
+            r8 = pixel >> 0x00 & 0xff
+            g8 = pixel >> 0x08 & 0xff
+            b8 = pixel >> 0x10 & 0xff
+            t8 = pixel >> 0x18 & 0xff
+        end
+
+        if t8 > 0 then
+            updateActiveFromRgba8(r8, g8, b8, t8, false)
+            dlg:repaint()
+            app.fgColor = Color {
+                r = math.floor(active.redFore * 255 + 0.5),
+                g = math.floor(active.greenFore * 255 + 0.5),
+                b = math.floor(active.blueFore * 255 + 0.5),
+                a = math.floor(active.alphaFore * 255 + 0.5)
+            }
+        end
     end
 }
 
