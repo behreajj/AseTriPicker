@@ -3,7 +3,6 @@ local oneTau <const> = 0.1591549430919
 local sqrt3_2 <const> = 0.86602540378444
 
 local defaults <const> = {
-    -- TODO: Alpha adjustment slider?
     rLevels = 8,
     gLevels = 8,
     bLevels = 8,
@@ -621,7 +620,7 @@ local function onMouseMove(event)
             active.vqBack = vq
 
             app.command.SwitchColors()
-            app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
+            app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
             app.command.SwitchColors()
         else
             active.hueFore = hueWheel
@@ -638,7 +637,7 @@ local function onMouseMove(event)
             end
             active.vqFore = vq
 
-            app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
+            app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
         end
     elseif isTri then
         local ringInEdge <const> = defaults.ringInEdge or 0.0
@@ -740,7 +739,7 @@ local function onMouseMove(event)
             active.vqBack = vq
 
             app.command.SwitchColors()
-            app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
+            app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
             app.command.SwitchColors()
         else
             active.redFore = rq
@@ -762,7 +761,7 @@ local function onMouseMove(event)
             end
             active.vqFore = vq
 
-            app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
+            app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
         end -- End front or back color check.
     end     -- End is in tri or wheel check.
 
@@ -1037,7 +1036,7 @@ dlg:button {
                 r = math.floor(active.redFore * 255 + 0.5),
                 g = math.floor(active.greenFore * 255 + 0.5),
                 b = math.floor(active.blueFore * 255 + 0.5),
-                a = math.floor(active.alphaFore * 255 + 0.5)
+                a = 255
             }
         end
     end
