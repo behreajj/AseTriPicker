@@ -1008,6 +1008,7 @@ dlg:button {
         local r8, g8, b8, t8 = 0, 0, 0, 0
         if colorMode == ColorMode.INDEXED then
             local hasBkg <const> = sprite.backgroundLayer ~= nil
+                and sprite.backgroundLayer.isVisible
             local palette <const> = sprite.palettes[1]
             local lenPalette <const> = #palette
             if (hasBkg or pixel ~= alphaIndex)
