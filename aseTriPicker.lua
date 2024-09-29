@@ -989,11 +989,12 @@ dlg:button {
 
         local spriteSpec <const> = sprite.spec
         local colorMode <const> = spriteSpec.colorMode
+        local alphaIndex <const> = spriteSpec.transparentColor
         local mouseSpec <const> = ImageSpec {
             width = 1,
             height = 1,
             colorMode = colorMode,
-            transparentColor = spriteSpec.transparentColor
+            transparentColor = alphaIndex
         }
         mouseSpec.colorSpace = spriteSpec.colorSpace
         local flat <const> = Image(mouseSpec)
@@ -1006,9 +1007,11 @@ dlg:button {
 
         local r8, g8, b8, t8 = 0, 0, 0, 0
         if colorMode == ColorMode.INDEXED then
+            local hasBkg <const> = sprite.backgroundLayer ~= nil
             local palette <const> = sprite.palettes[1]
             local lenPalette <const> = #palette
-            if pixel >= 0 and pixel < lenPalette then
+            if (hasBkg or pixel ~= alphaIndex)
+                and pixel >= 0 and pixel < lenPalette then
                 local aseColor <const> = palette:getColor(pixel)
                 r8 = aseColor.red
                 g8 = aseColor.green
