@@ -93,6 +93,8 @@ local function hsvToRgb(h, s, v)
         return tint3, tint1, v
     elseif sector == 5 then
         return v, tint1, tint2
+    elseif sector == 6 then
+        return v, tint3, tint1
     end
 
     return 0.0, 0.0, 0.0
@@ -109,12 +111,12 @@ local function rgbToHsv(r, g, b)
     local gbmn <const> = math.min(g, b)
     local mx <const> = math.max(r, gbmx)
 
-    if mx < 0.00001 then return 0.0, 0.0, 0.0 end
+    if mx <= 0.0 then return 0.0, 0.0, 0.0 end
 
     local mn <const> = math.min(r, gbmn)
     local chroma <const> = mx - mn
 
-    if chroma < 0.00001 then return 0.0, 0.0, mx end
+    if chroma <= 0.0 then return 0.0, 0.0, mx end
 
     local hue = 0.0
     if r == mx then
@@ -535,7 +537,93 @@ local function onPaint(event)
     end
 end
 
+---@param hueWheel number
+local function updateFromHue(hueWheel)
+    local isBackActive <const> = active.isBackActive
+    local satWheel <const> = isBackActive
+        and (active.satBack or defaults.sat)
+        or (active.satFore or defaults.sat)
+    local valWheel <const> = isBackActive
+        and (active.valBack or defaults.val)
+        or (active.valFore or defaults.val)
+    -- local alphaWheel <const> = isBackActive
+    --     and (active.alphaBack or 1.0)
+    --     or (active.alphaFore or 1.0)
+
+    local r01 <const>, g01 <const>, b01 <const> = hsvToRgb(
+        hueWheel, satWheel, valWheel)
+
+    local rMax <const> = active.rMax
+    local gMax <const> = active.gMax
+    local bMax <const> = active.bMax
+
+    local rq <const> = math.floor(r01 * rMax + 0.5) / rMax
+    local gq <const> = math.floor(g01 * gMax + 0.5) / gMax
+    local bq <const> = math.floor(b01 * bMax + 0.5) / bMax
+
+    local r8 <const> = math.floor(rq * 255.0 + 0.5)
+    local g8 <const> = math.floor(gq * 255.0 + 0.5)
+    local b8 <const> = math.floor(bq * 255.0 + 0.5)
+    -- local t8 <const> = math.floor(alphaWheel * 255.0 + 0.5)
+
+    local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
+
+    if isBackActive then
+        active.hueBack = hueWheel
+
+        active.redBack = rq
+        active.greenBack = gq
+        active.blueBack = bq
+
+        if vq > 0.0 then
+            if sq > 0.0 then
+                active.hqBack = hq
+            end
+            active.sqBack = sq
+        end
+        active.vqBack = vq
+
+        app.command.SwitchColors()
+        app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
+        app.command.SwitchColors()
+    else
+        active.hueFore = hueWheel
+
+        active.redFore = rq
+        active.greenFore = gq
+        active.blueFore = bq
+
+        if vq > 0.0 then
+            if sq > 0.0 then
+                active.hqFore = hq
+            end
+            active.sqFore = sq
+        end
+        active.vqFore = vq
+
+        app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
+    end
+end
+
 local dlg <const> = Dialog { title = "Color Picker" }
+
+---@param event KeyEvent
+local function onKeyUp(event)
+    local isBackActive <const> = active.isBackActive
+    local hueActive <const> = isBackActive
+        and (active.hueBack or defaults.hue)
+        or (active.hueFore or defaults.hue)
+    local step <const> = 5 / 360.0
+
+    local eventCode <const> = event.code
+    if eventCode == "ArrowRight" then
+        updateFromHue((hueActive + step) % 1.0)
+        dlg:repaint()
+    elseif eventCode == "ArrowLeft" then
+        updateFromHue((hueActive - step) % 1.0)
+        dlg:repaint()
+    end
+end
 
 ---@param event MouseEvent
 local function onMouseMove(event)
@@ -562,11 +650,6 @@ local function onMouseMove(event)
     local xNorm <const> = xDelta * rCanvasInv
     local yNorm <const> = yDelta * rCanvasInv
 
-    local isBackActive <const> = active.isBackActive
-    -- local alphaWheel <const> = isBackActive
-    --     and (active.alphaBack or 1.0)
-    --     or (active.alphaFore or 1.0)
-
     if isRing then
         local angSigned <const> = math.atan(yNorm, xNorm)
         local angOffsetRadians <const> = defaults.angOffsetRadians or 0.0
@@ -577,69 +660,12 @@ local function onMouseMove(event)
         end
         local hueWheel = hwSigned - math.floor(hwSigned)
 
-        local satWheel <const> = isBackActive
-            and (active.satBack or 0.0)
-            or (active.satFore or 0.0)
-        local valWheel <const> = isBackActive
-            and (active.valBack or 0.0)
-            or (active.valFore or 0.0)
-
-        local r01 <const>, g01 <const>, b01 <const> = hsvToRgb(hueWheel, satWheel, valWheel)
-
-        local rMax <const> = active.rMax
-        local gMax <const> = active.gMax
-        local bMax <const> = active.bMax
-
-        local rq <const> = math.floor(r01 * rMax + 0.5) / rMax
-        local gq <const> = math.floor(g01 * gMax + 0.5) / gMax
-        local bq <const> = math.floor(b01 * bMax + 0.5) / bMax
-
-        local r8 <const> = math.floor(rq * 255.0 + 0.5)
-        local g8 <const> = math.floor(gq * 255.0 + 0.5)
-        local b8 <const> = math.floor(bq * 255.0 + 0.5)
-        -- local t8 <const> = math.floor(alphaWheel * 255.0 + 0.5)
-
-        local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
-
-        if isBackActive then
-            active.hueBack = hueWheel
-
-            active.redBack = rq
-            active.greenBack = gq
-            active.blueBack = bq
-
-            if vq > 0.0 then
-                if sq > 0.0 then
-                    active.hqBack = hq
-                end
-                active.sqBack = sq
-            end
-            active.vqBack = vq
-
-            app.command.SwitchColors()
-            app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
-            app.command.SwitchColors()
-        else
-            active.hueFore = hueWheel
-
-            active.redFore = rq
-            active.greenFore = gq
-            active.blueFore = bq
-
-            if vq > 0.0 then
-                if sq > 0.0 then
-                    active.hqFore = hq
-                end
-                active.sqFore = sq
-            end
-            active.vqFore = vq
-
-            app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
-        end
+        updateFromHue(hueWheel)
     elseif isTri then
         local ringInEdge <const> = defaults.ringInEdge or 0.0
         local angOffsetRadians <const> = defaults.angOffsetRadians or 0.0
 
+        local isBackActive <const> = active.isBackActive
         local hueActive <const> = isBackActive
             and (active.hueBack or 0.0)
             or (active.hueFore or 0.0)
@@ -693,7 +719,8 @@ local function onMouseMove(event)
         local diagSq <const> = u * u + v * v
         local coeff <const> = diagSq <= 0.0 and 0.0 or w2
 
-        local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(hueActive, 1.0, 1.0)
+        local rBase <const>, gBase <const>, bBase <const> = hsvToRgb(
+            hueActive, 1.0, 1.0)
 
         local r01 <const> = (w1 * rBase + coeff) * wSumInv
         local g01 <const> = (w1 * gBase + coeff) * wSumInv
@@ -871,6 +898,7 @@ dlg:canvas {
     focus = true,
     width = defaults.wCanvas,
     height = defaults.hCanvas,
+    onkeyup = onKeyUp,
     onmousedown = onMouseDown,
     onmousemove = onMouseMove,
     onmouseup = onMouseUp,
