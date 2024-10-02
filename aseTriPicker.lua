@@ -878,7 +878,7 @@ dlg:check {
     text = defaults.triCheck,
     selected = defaults.lockTriRot,
     focus = false,
-    visible = true,
+    visible = false,
     onclick = function()
         local args <const> = dlg.data
         local lockTriRot <const> = args.lockTriRot or false --[[@as boolean]]
