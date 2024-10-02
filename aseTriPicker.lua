@@ -24,6 +24,11 @@ local defaults <const> = {
     swatchSize = 16,
     textDisplayLimit = 50,
     shiftLevels = 24,
+
+    foreKey = "&FORE",
+    backKey = "&BACK",
+    canvasKey = "C&ANVAS",
+    closeKey = "&X"
 }
 
 local active <const> = {
@@ -932,7 +937,7 @@ dlg:newrow { always = false }
 
 dlg:button {
     id = "getForeButton",
-    text = "&FORE",
+    text = defaults.foreKey,
     onclick = function()
         local fgColor <const> = app.fgColor
         local r8 <const> = fgColor.red
@@ -946,7 +951,7 @@ dlg:button {
 
 dlg:button {
     id = "getBackButton",
-    text = "&BACK",
+    text = defaults.backKey,
     onclick = function()
         app.command.SwitchColors()
         local bgColor <const> = app.fgColor
@@ -961,8 +966,8 @@ dlg:button {
 }
 
 dlg:button {
-    id = "pickButton",
-    text = "C&ANVAS",
+    id = "canvasButton",
+    text = defaults.canvasKey,
     onclick = function()
         local editor <const> = app.editor
         if not editor then return end
@@ -1049,7 +1054,7 @@ dlg:button {
 
 dlg:button {
     id = "exitButton",
-    text = "&X",
+    text = defaults.closeKey,
     onclick = function()
         dlg:close()
     end
