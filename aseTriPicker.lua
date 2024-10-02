@@ -31,11 +31,18 @@ local defaults <const> = {
     closeKey = "&X",
 
     hueStep = 0.0013180565309174,
+    satStep = 0.01,
     valStep = 0.01,
+    shiftScalar = 5.0,
 
     -- https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values
+    -- The issue with arrow keys is that when a selection is being transformed,
+    -- these inputs get eaten. Other keys, like WASD and QE interfere with
+    -- magic wand, etc. For now, saturation nudging needs Alt key.
     hueIncrKey = "ArrowRight",
     hueDecrKey = "ArrowLeft",
+    satIncrKey = "ArrowUp",
+    satDecrKey = "ArrowDown",
     valIncrKey = "ArrowUp",
     valDecrKey = "ArrowDown",
 }
@@ -489,6 +496,20 @@ local function updateFromHue(hue)
     updateQuantizedHsv(hue, satWheel, valWheel, isBackActive)
 end
 
+---@param sat number
+local function updateFromSat(sat)
+    local isBackActive <const> = active.isBackActive
+    active[isBackActive and "satBack" or "satFore"] = sat
+
+    local hueWheel <const> = isBackActive
+        and (active.hueBack or defaults.hue)
+        or (active.hueFore or defaults.hue)
+    local valWheel <const> = isBackActive
+        and (active.valBack or defaults.val)
+        or (active.valFore or defaults.val)
+    updateQuantizedHsv(hueWheel, sat, valWheel, isBackActive)
+end
+
 ---@param val number
 local function updateFromVal(val)
     local isBackActive <const> = active.isBackActive
@@ -563,19 +584,37 @@ local function onKeyUp(event)
     local hueActive <const> = isBackActive
         and (active.hueBack or defaults.hue)
         or (active.hueFore or defaults.hue)
+    local satActive <const> = isBackActive
+        and (active.satBack or defaults.sat)
+        or (active.satFore or defaults.sat)
     local valActive <const> = isBackActive
         and (active.valBack or defaults.val)
         or (active.valFore or defaults.val)
 
-    local hueStep <const> = defaults.hueStep
-    local valStep <const> = defaults.valStep
+    local isShift = event.shiftKey
+    local hueStep <const> = isShift
+        and defaults.hueStep * defaults.shiftScalar
+        or defaults.hueStep
+    local satStep <const> = isShift
+        and defaults.satStep * defaults.shiftScalar
+        or defaults.satStep
+    local valStep <const> = isShift
+        and defaults.valStep * defaults.shiftScalar
+        or defaults.valStep
 
     local eventCode <const> = event.code
+    local isAlt <const> = event.altKey
     if eventCode == defaults.hueIncrKey then
         updateFromHue((hueActive + hueStep) % 1.0)
         dlg:repaint()
     elseif eventCode == defaults.hueDecrKey then
         updateFromHue((hueActive - hueStep) % 1.0)
+        dlg:repaint()
+    elseif isAlt and eventCode == defaults.satIncrKey then
+        updateFromSat(math.min(math.max(satActive + satStep, 0.0), 1.0))
+        dlg:repaint()
+    elseif isAlt and eventCode == defaults.satDecrKey then
+        updateFromSat(math.min(math.max(satActive - satStep, 0.0), 1.0))
         dlg:repaint()
     elseif eventCode == defaults.valIncrKey then
         updateFromVal(math.min(math.max(valActive + valStep, 0.0), 1.0))
