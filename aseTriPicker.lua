@@ -30,9 +30,14 @@ local defaults <const> = {
     canvasKey = "C&ANVAS",
     closeKey = "&X",
 
+    hueStep = 0.0013180565309174,
+    valStep = 0.01,
+
     -- https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values
     hueIncrKey = "ArrowRight",
     hueDecrKey = "ArrowLeft",
+    valIncrKey = "ArrowUp",
+    valDecrKey = "ArrowDown",
 }
 
 local active <const> = {
@@ -138,106 +143,6 @@ local function rgbToHsv(r, g, b)
     end
 
     return hue / 6.0, chroma / mx, mx
-end
-
-local function updateActiveFromLevels()
-    local rMax <const> = active.rMax
-    local gMax <const> = active.gMax
-    local bMax <const> = active.bMax
-
-    local r01Fore <const> = active.redFore
-    local g01Fore <const> = active.greenFore
-    local b01Fore <const> = active.blueFore
-
-    local rqFore <const> = math.floor(r01Fore * rMax + 0.5) / rMax
-    local gqFore <const> = math.floor(g01Fore * gMax + 0.5) / gMax
-    local bqFore <const> = math.floor(b01Fore * bMax + 0.5) / bMax
-
-    active.redFore = rqFore
-    active.greenFore = gqFore
-    active.blueFore = bqFore
-
-    local hqFore <const>,
-    sqFore <const>,
-    vqFore <const> = rgbToHsv(rqFore, gqFore, bqFore)
-
-    if vqFore > 0.0 then
-        if sqFore > 0.0 then
-            active.hqFore = hqFore
-        end
-        active.sqFore = sqFore
-    end
-    active.vqFore = vqFore
-
-    local r01Back <const> = active.redBack
-    local g01Back <const> = active.greenBack
-    local b01Back <const> = active.blueBack
-
-    local rqBack <const> = math.floor(r01Back * rMax + 0.5) / rMax
-    local gqBack <const> = math.floor(g01Back * gMax + 0.5) / gMax
-    local bqBack <const> = math.floor(b01Back * bMax + 0.5) / bMax
-
-    active.redBack = rqBack
-    active.greenBack = gqBack
-    active.blueBack = bqBack
-
-    local hqBack <const>,
-    sqBack <const>,
-    vqBack <const> = rgbToHsv(rqBack, gqBack, bqBack)
-
-    if vqBack > 0.0 then
-        if sqBack > 0.0 then
-            active.hqBack = hqBack
-        end
-        active.sqBack = sqBack
-    end
-    active.vqBack = vqBack
-end
-
----@param r8 integer
----@param g8 integer
----@param b8 integer
----@param t8 integer
----@param isBackActive boolean
-local function updateActiveFromRgba8(r8, g8, b8, t8, isBackActive)
-    local rMax <const> = active.rMax
-    local gMax <const> = active.gMax
-    local bMax <const> = active.bMax
-
-    local r01 <const>, g01 <const>, b01 <const> = r8 / 255.0, g8 / 255.0, b8 / 255.0
-    local rq <const> = math.floor((r01) * rMax + 0.5) / rMax
-    local gq <const> = math.floor((g01) * gMax + 0.5) / gMax
-    local bq <const> = math.floor((b01) * bMax + 0.5) / bMax
-
-    local hq <const>,
-    sq <const>,
-    vq <const> = rgbToHsv(rq, gq, bq)
-
-    local ho <const>,
-    so <const>,
-    vo <const> = rgbToHsv(r01, g01, b01)
-
-    active[isBackActive and "redBack" or "redFore"] = rq
-    active[isBackActive and "greenBack" or "greenFore"] = gq
-    active[isBackActive and "blueBack" or "blueFore"] = bq
-
-    active[isBackActive and "alphaBack" or "alphaFore"] = t8
-
-    if vo > 0.0 then
-        if so > 0.0 then
-            active[isBackActive and "hueBack" or "hueFore"] = ho
-        end
-        active[isBackActive and "satBack" or "satFore"] = so
-    end
-    active[isBackActive and "valBack" or "valFore"] = vo
-
-    if vq > 0.0 then
-        if sq > 0.0 then
-            active[isBackActive and "hqBack" or "hqFore"] = hq
-        end
-        active[isBackActive and "sqBack" or "sqFore"] = sq
-    end
-    active[isBackActive and "vqBack" or "vqFore"] = vq
 end
 
 ---@param event { context: GraphicsContext }
@@ -522,22 +427,11 @@ local function onPaint(event)
     end
 end
 
----@param hueWheel number
-local function updateFromHue(hueWheel)
-    local isBackActive <const> = active.isBackActive
-    local satWheel <const> = isBackActive
-        and (active.satBack or defaults.sat)
-        or (active.satFore or defaults.sat)
-    local valWheel <const> = isBackActive
-        and (active.valBack or defaults.val)
-        or (active.valFore or defaults.val)
-    -- local alphaWheel <const> = isBackActive
-    --     and (active.alphaBack or 1.0)
-    --     or (active.alphaFore or 1.0)
-
-    local r01 <const>, g01 <const>, b01 <const> = hsvToRgb(
-        hueWheel, satWheel, valWheel)
-
+---@param r01 number
+---@param g01 number
+---@param b01 number
+---@param isBackActive boolean
+local function updateQuantizedRgb(r01, g01, b01, isBackActive)
     local rMax <const> = active.rMax
     local gMax <const> = active.gMax
     local bMax <const> = active.bMax
@@ -546,48 +440,119 @@ local function updateFromHue(hueWheel)
     local gq <const> = math.floor(g01 * gMax + 0.5) / gMax
     local bq <const> = math.floor(b01 * bMax + 0.5) / bMax
 
+    active[isBackActive and "redBack" or "redFore"] = rq
+    active[isBackActive and "greenBack" or "greenFore"] = gq
+    active[isBackActive and "blueBack" or "blueFore"] = bq
+
+    local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
+    if vq > 0.0 then
+        if sq > 0.0 then
+            active[isBackActive and "hqBack" or "hqFore"] = hq
+        end
+        active[isBackActive and "sqBack" or "sqFore"] = sq
+    end
+    active[isBackActive and "vqBack" or "vqFore"] = vq
+
     local r8 <const> = math.floor(rq * 255.0 + 0.5)
     local g8 <const> = math.floor(gq * 255.0 + 0.5)
     local b8 <const> = math.floor(bq * 255.0 + 0.5)
-    -- local t8 <const> = math.floor(alphaWheel * 255.0 + 0.5)
-
-    local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
 
     if isBackActive then
-        active.hueBack = hueWheel
-
-        active.redBack = rq
-        active.greenBack = gq
-        active.blueBack = bq
-
-        if vq > 0.0 then
-            if sq > 0.0 then
-                active.hqBack = hq
-            end
-            active.sqBack = sq
-        end
-        active.vqBack = vq
-
         app.command.SwitchColors()
         app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
         app.command.SwitchColors()
     else
-        active.hueFore = hueWheel
-
-        active.redFore = rq
-        active.greenFore = gq
-        active.blueFore = bq
-
-        if vq > 0.0 then
-            if sq > 0.0 then
-                active.hqFore = hq
-            end
-            active.sqFore = sq
-        end
-        active.vqFore = vq
-
         app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
     end
+end
+
+---@param ho number
+---@param so number
+---@param vo number
+---@param isBackActive boolean
+local function updateQuantizedHsv(ho, so, vo, isBackActive)
+    local r01 <const>, g01 <const>, b01 <const> = hsvToRgb(ho, so, vo)
+    updateQuantizedRgb(r01, g01, b01, isBackActive)
+end
+
+---@param hue number
+local function updateFromHue(hue)
+    local isBackActive <const> = active.isBackActive
+    active[isBackActive and "hueBack" or "hueFore"] = hue
+
+    local satWheel <const> = isBackActive
+        and (active.satBack or defaults.sat)
+        or (active.satFore or defaults.sat)
+    local valWheel <const> = isBackActive
+        and (active.valBack or defaults.val)
+        or (active.valFore or defaults.val)
+    updateQuantizedHsv(hue, satWheel, valWheel, isBackActive)
+end
+
+---@param val number
+local function updateFromVal(val)
+    local isBackActive <const> = active.isBackActive
+    active[isBackActive and "valBack" or "valFore"] = val
+
+    local hueWheel <const> = isBackActive
+        and (active.hueBack or defaults.hue)
+        or (active.hueFore or defaults.hue)
+    local satWheel <const> = isBackActive
+        and (active.satBack or defaults.sat)
+        or (active.satFore or defaults.sat)
+    updateQuantizedHsv(hueWheel, satWheel, val, isBackActive)
+end
+
+local function updateFromLevels()
+    local r01Fore <const> = active.redFore
+    local g01Fore <const> = active.greenFore
+    local b01Fore <const> = active.blueFore
+    updateQuantizedRgb(r01Fore, g01Fore, b01Fore, false)
+
+    local r01Back <const> = active.redBack
+    local g01Back <const> = active.greenBack
+    local b01Back <const> = active.blueBack
+    updateQuantizedRgb(r01Back, g01Back, b01Back, true)
+end
+
+---@param r8 integer
+---@param g8 integer
+---@param b8 integer
+---@param t8 integer
+---@param isBackActive boolean
+local function updateFromAse(r8, g8, b8, t8, isBackActive)
+    local r01 <const>, g01 <const>, b01 <const> = r8 / 255.0, g8 / 255.0, b8 / 255.0
+
+    local ho <const>, so <const>, vo <const> = rgbToHsv(r01, g01, b01)
+    if vo > 0.0 then
+        if so > 0.0 then
+            active[isBackActive and "hueBack" or "hueFore"] = ho
+        end
+        active[isBackActive and "satBack" or "satFore"] = so
+    end
+    active[isBackActive and "valBack" or "valFore"] = vo
+
+    local rMax <const> = active.rMax
+    local gMax <const> = active.gMax
+    local bMax <const> = active.bMax
+
+    local rq <const> = math.floor((r01) * rMax + 0.5) / rMax
+    local gq <const> = math.floor((g01) * gMax + 0.5) / gMax
+    local bq <const> = math.floor((b01) * bMax + 0.5) / bMax
+
+    active[isBackActive and "redBack" or "redFore"] = rq
+    active[isBackActive and "greenBack" or "greenFore"] = gq
+    active[isBackActive and "blueBack" or "blueFore"] = bq
+    active[isBackActive and "alphaBack" or "alphaFore"] = t8
+
+    local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
+    if vq > 0.0 then
+        if sq > 0.0 then
+            active[isBackActive and "hqBack" or "hqFore"] = hq
+        end
+        active[isBackActive and "sqBack" or "sqFore"] = sq
+    end
+    active[isBackActive and "vqBack" or "vqFore"] = vq
 end
 
 local dlg <const> = Dialog { title = "Color Picker" }
@@ -598,7 +563,12 @@ local function onKeyUp(event)
     local hueActive <const> = isBackActive
         and (active.hueBack or defaults.hue)
         or (active.hueFore or defaults.hue)
-    local hueStep <const> = 0.0013180565309174
+    local valActive <const> = isBackActive
+        and (active.valBack or defaults.val)
+        or (active.valFore or defaults.val)
+
+    local hueStep <const> = defaults.hueStep
+    local valStep <const> = defaults.valStep
 
     local eventCode <const> = event.code
     if eventCode == defaults.hueIncrKey then
@@ -606,6 +576,12 @@ local function onKeyUp(event)
         dlg:repaint()
     elseif eventCode == defaults.hueDecrKey then
         updateFromHue((hueActive - hueStep) % 1.0)
+        dlg:repaint()
+    elseif eventCode == defaults.valIncrKey then
+        updateFromVal(math.min(math.max(valActive + valStep, 0.0), 1.0))
+        dlg:repaint()
+    elseif eventCode == defaults.valDecrKey then
+        updateFromVal(math.min(math.max(valActive - valStep, 0.0), 1.0))
         dlg:repaint()
     end
 end
@@ -711,47 +687,14 @@ local function onMouseMove(event)
         local g01 <const> = (w1 * gBase + coeff) * wSumInv
         local b01 <const> = (w1 * bBase + coeff) * wSumInv
 
-        local rMax <const> = active.rMax or 1.0
-        local gMax <const> = active.gMax or 1.0
-        local bMax <const> = active.bMax or 1.0
-
-        local rq <const> = math.floor(r01 * rMax + 0.5) / rMax
-        local gq <const> = math.floor(g01 * gMax + 0.5) / gMax
-        local bq <const> = math.floor(b01 * bMax + 0.5) / bMax
-
-        local r8 <const> = math.floor(rq * 255.0 + 0.5)
-        local g8 <const> = math.floor(gq * 255.0 + 0.5)
-        local b8 <const> = math.floor(bq * 255.0 + 0.5)
-        -- local t8 <const> = math.floor(alphaWheel * 255.0 + 0.5)
-
         local _ <const>, so <const>, vo <const> = rgbToHsv(r01, g01, b01)
-        local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
-
-        active[isBackActive and "redBack" or "redFore"] = rq
-        active[isBackActive and "greenBack" or "greenFore"] = gq
-        active[isBackActive and "blueBack" or "blueFore"] = bq
-
         if vo > 0.0 then
             active[isBackActive and "satBack" or "satFore"] = so
         end
         active[isBackActive and "valBack" or "valFore"] = vo
 
-        if vq > 0.0 then
-            if sq > 0.0 then
-                active[isBackActive and "hqBack" or "hqFore"] = hq
-            end
-            active[isBackActive and "sqBack" or "sqFore"] = sq
-        end
-        active[isBackActive and "vqBack" or "vqFore"] = vq
-
-        if isBackActive then
-            app.command.SwitchColors()
-            app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
-            app.command.SwitchColors()
-        else
-            app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
-        end -- End front or back color check.
-    end     -- End is in tri or wheel check.
+        updateQuantizedRgb(r01, g01, b01, isBackActive)
+    end -- End is in tri or wheel check.
 
     dlg:repaint()
 end
@@ -881,7 +824,7 @@ dlg:slider {
         local args <const> = dlg.data
         local rLevels <const> = args.rLevels or 8 --[[@as integer]]
         active.rMax = (1 << rLevels) - 1.0
-        updateActiveFromLevels()
+        updateFromLevels()
         dlg:repaint()
     end
 }
@@ -896,7 +839,7 @@ dlg:slider {
         local args <const> = dlg.data
         local gLevels <const> = args.gLevels or 8 --[[@as integer]]
         active.gMax = (1 << gLevels) - 1.0
-        updateActiveFromLevels()
+        updateFromLevels()
         dlg:repaint()
     end
 }
@@ -911,7 +854,7 @@ dlg:slider {
         local args <const> = dlg.data
         local bLevels <const> = args.bLevels or 8 --[[@as integer]]
         active.bMax = (1 << bLevels) - 1.0
-        updateActiveFromLevels()
+        updateFromLevels()
         dlg:repaint()
     end
 }
@@ -927,7 +870,7 @@ dlg:button {
         local g8fg <const> = fgColor.green
         local b8fg <const> = fgColor.blue
         local t8fg <const> = fgColor.alpha
-        updateActiveFromRgba8(r8fg, g8fg, b8fg, t8fg, false)
+        updateFromAse(r8fg, g8fg, b8fg, t8fg, false)
         dlg:repaint()
     end
 }
@@ -943,7 +886,7 @@ dlg:button {
         local b8bg <const> = bgColor.blue
         local t8bg <const> = bgColor.alpha
         app.command.SwitchColors()
-        updateActiveFromRgba8(r8bg, g8bg, b8bg, t8bg, true)
+        updateFromAse(r8bg, g8bg, b8bg, t8bg, true)
         dlg:repaint()
     end
 }
@@ -1023,7 +966,7 @@ dlg:button {
         end
 
         if t8 > 0 then
-            updateActiveFromRgba8(r8, g8, b8, t8, false)
+            updateFromAse(r8, g8, b8, t8, false)
             dlg:repaint()
             app.fgColor = Color {
                 r = math.floor(active.redFore * 255 + 0.5),
@@ -1049,7 +992,7 @@ do
     local g8fg <const> = fgColor.green
     local b8fg <const> = fgColor.blue
     local t8fg <const> = fgColor.alpha
-    updateActiveFromRgba8(r8fg, g8fg, b8fg, t8fg, false)
+    updateFromAse(r8fg, g8fg, b8fg, t8fg, false)
 
     app.command.SwitchColors()
     local bgColor <const> = app.fgColor
@@ -1058,7 +1001,7 @@ do
     local b8bg <const> = bgColor.blue
     local t8bg <const> = bgColor.alpha
     app.command.SwitchColors()
-    updateActiveFromRgba8(r8bg, g8bg, b8bg, t8bg, true)
+    updateFromAse(r8bg, g8bg, b8bg, t8bg, true)
 
     dlg:repaint()
 end
