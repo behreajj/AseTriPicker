@@ -28,7 +28,10 @@ local defaults <const> = {
     foreKey = "&FORE",
     backKey = "&BACK",
     canvasKey = "C&ANVAS",
-    closeKey = "&X"
+    closeKey = "&X",
+
+    hueIncrKey = "ArrowRight",
+    hueDecrKey = "ArrowLeft",
 }
 
 local active <const> = {
@@ -594,14 +597,14 @@ local function onKeyUp(event)
     local hueActive <const> = isBackActive
         and (active.hueBack or defaults.hue)
         or (active.hueFore or defaults.hue)
-    local step <const> = 5 / 360.0
+    local hueStep <const> = 0.0013180565309174
 
     local eventCode <const> = event.code
-    if eventCode == "ArrowRight" then
-        updateFromHue((hueActive + step) % 1.0)
+    if eventCode == defaults.hueIncrKey then
+        updateFromHue((hueActive + hueStep) % 1.0)
         dlg:repaint()
-    elseif eventCode == "ArrowLeft" then
-        updateFromHue((hueActive - step) % 1.0)
+    elseif eventCode == defaults.hueDecrKey then
+        updateFromHue((hueActive - hueStep) % 1.0)
         dlg:repaint()
     end
 end
