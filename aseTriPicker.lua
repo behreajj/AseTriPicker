@@ -3,6 +3,9 @@ local oneTau <const> = 0.1591549430919
 local sqrt3_2 <const> = 0.86602540378444
 
 local defaults <const> = {
+    lockTriRot = false,
+    hueReticle = 0.0125,
+
     rLevels = 8,
     gLevels = 8,
     bLevels = 8,
@@ -29,6 +32,7 @@ local defaults <const> = {
     backKey = "&BACK",
     canvasKey = "C&ANVAS",
     closeKey = "&X",
+    triCheck = "Tri Lock",
 
     hueStep = 0.0013180565309174,
     satStep = 0.01,
@@ -48,6 +52,8 @@ local defaults <const> = {
 }
 
 local active <const> = {
+    lockTriRot = defaults.lockTriRot,
+
     wCanvas = defaults.wCanvas,
     hCanvas = defaults.hCanvas,
 
@@ -154,8 +160,10 @@ end
 
 ---@param event { context: GraphicsContext }
 local function onPaint(event)
-    local angOffsetRadians <const> = defaults.angOffsetRadians or 0.0
-    local ringInEdge <const> = defaults.ringInEdge or 0.9
+    local angOffsetRadians <const> = defaults.angOffsetRadians
+    local hueReticule <const> = defaults.hueReticle
+    local lockTriRot <const> = active.lockTriRot
+    local ringInEdge <const> = defaults.ringInEdge
     local sqRie <const> = ringInEdge * ringInEdge
 
     local ctx <const> = event.context
@@ -198,9 +206,12 @@ local function onPaint(event)
         or (active.hueFore or 0.0)
 
     -- Find main point of the triangle.
-    local thetaActive <const> = (hueActive * tau) - angOffsetRadians
-    local xTri1 <const> = ringInEdge * math.cos(thetaActive)
-    local yTri1 <const> = ringInEdge * math.sin(thetaActive)
+    local thetaActive <const> = hueActive * tau
+    local thetaTri <const> = lockTriRot
+        and 0
+        or thetaActive - angOffsetRadians
+    local xTri1 <const> = ringInEdge * math.cos(thetaTri)
+    local yTri1 <const> = ringInEdge * math.sin(thetaTri)
 
     -- Find the other two triangle points, 120 degrees away.
     local rt32x <const> = sqrt3_2 * xTri1
@@ -228,6 +239,7 @@ local function onPaint(event)
     local strpack <const> = string.pack
     local floor <const> = math.floor
     local atan <const> = math.atan
+    local abs <const> = math.abs
 
     local rBase <const>,
     gBase <const>,
@@ -256,23 +268,30 @@ local function onPaint(event)
         local byteStr = packZero
         if sqMag >= sqRie and sqMag <= 1.0 then
             -- Within the rim of the hue circle.
-            local angSigned <const> = angOffsetRadians + atan(yNorm, xNorm)
-            local hueWheel <const> = (angSigned % tau) * oneTau
-            local rWheel <const>,
-            gWheel <const>, bWheel <const> = hsvToRgb(hueWheel, 1.0, 1.0)
 
-            byteStr = strpack("B B B B",
-                -- Quantized.
-                floor(floor(rWheel * rMax + 0.5) * rRatio + 0.5),
-                floor(floor(gWheel * gMax + 0.5) * gRatio + 0.5),
-                floor(floor(bWheel * bMax + 0.5) * bRatio + 0.5),
+            local angSigned <const> = atan(yNorm, xNorm)
+            local angUnSigned <const> = (angOffsetRadians + angSigned) % tau
 
-                -- Not quantized.
-                -- floor(rWheel * 255 + 0.5),
-                -- floor(gWheel * 255 + 0.5),
-                -- floor(bWheel * 255 + 0.5),
+            if lockTriRot and abs(angUnSigned - thetaActive) < hueReticule then
+                byteStr = strpack("B B B B", 255, 255, 255, 255)
+            else
+                local hueWheel <const> = angUnSigned * oneTau
+                local rWheel <const>,
+                gWheel <const>, bWheel <const> = hsvToRgb(hueWheel, 1.0, 1.0)
 
-                255)
+                byteStr = strpack("B B B B",
+                    -- Quantized.
+                    floor(floor(rWheel * rMax + 0.5) * rRatio + 0.5),
+                    floor(floor(gWheel * gMax + 0.5) * gRatio + 0.5),
+                    floor(floor(bWheel * bMax + 0.5) * bRatio + 0.5),
+
+                    -- Not quantized.
+                    -- floor(rWheel * 255 + 0.5),
+                    -- floor(gWheel * 255 + 0.5),
+                    -- floor(bWheel * 255 + 0.5),
+
+                    255)
+            end
         elseif sqMag < sqRie then
             -- Inscribed triangle.
             local xbw <const> = xNorm - xTri3
@@ -310,8 +329,8 @@ local function onPaint(event)
                     -- floor(bTri * 255 + 0.5),
 
                     255)
-            end -- End ws inbounds check.
-        end     -- End square mag check.
+            end -- End ws inbounds.
+        end     -- End square mag.
 
         i = i + 1
         byteStrs[i] = byteStr
@@ -651,19 +670,20 @@ local function onMouseMove(event)
     local yNorm <const> = yDelta * rCanvasInv
 
     if isRing then
+        -- TODO: Option to lock triangle rotation.
         local angSigned <const> = math.atan(yNorm, xNorm)
-        local angOffsetRadians <const> = defaults.angOffsetRadians or 0.0
+        local angOffsetRadians <const> = defaults.angOffsetRadians
         local hwSigned = (angSigned + angOffsetRadians) * oneTau
         if event.shiftKey then
-            local shiftLevels <const> = defaults.shiftLevels or 24
+            local shiftLevels <const> = defaults.shiftLevels
             hwSigned = math.floor(0.5 + hwSigned * shiftLevels) / shiftLevels
         end
         local hueWheel = hwSigned - math.floor(hwSigned)
 
         updateFromHue(hueWheel)
     elseif isTri then
-        local ringInEdge <const> = defaults.ringInEdge or 0.0
-        local angOffsetRadians <const> = defaults.angOffsetRadians or 0.0
+        local ringInEdge <const> = defaults.ringInEdge
+        local angOffsetRadians <const> = defaults.angOffsetRadians
 
         local isBackActive <const> = active.isBackActive
         local hueActive <const> = isBackActive
@@ -733,7 +753,7 @@ local function onMouseMove(event)
         active[isBackActive and "valBack" or "valFore"] = vo
 
         updateQuantizedRgb(r01, g01, b01, isBackActive)
-    end -- End is in tri or wheel check.
+    end -- End is in tri or wheel.
 
     dlg:repaint()
 end
@@ -849,6 +869,22 @@ dlg:canvas {
     onmousemove = onMouseMove,
     onmouseup = onMouseUp,
     onpaint = onPaint,
+}
+
+dlg:newrow { always = false }
+
+dlg:check {
+    id = "lockTriRot",
+    text = defaults.triCheck,
+    selected = defaults.lockTriRot,
+    focus = false,
+    visible = true,
+    onclick = function()
+        local args <const> = dlg.data
+        local lockTriRot <const> = args.lockTriRot or false --[[@as boolean]]
+        active.lockTriRot = lockTriRot
+        dlg:repaint()
+    end
 }
 
 dlg:newrow { always = false }
