@@ -986,7 +986,7 @@ dlg:button {
 
 dlg:button {
     id = "pickButton",
-    text = "P&ICK",
+    text = "C&ANVAS",
     onclick = function()
         local editor <const> = app.editor
         if not editor then return end
