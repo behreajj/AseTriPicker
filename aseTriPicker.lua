@@ -670,7 +670,6 @@ local function onMouseMove(event)
     local yNorm <const> = yDelta * rCanvasInv
 
     if isRing then
-        -- TODO: Option to lock triangle rotation.
         local angSigned <const> = math.atan(yNorm, xNorm)
         local angOffsetRadians <const> = defaults.angOffsetRadians
         local hwSigned = (angSigned + angOffsetRadians) * oneTau
@@ -691,9 +690,13 @@ local function onMouseMove(event)
             or (active.hueFore or 0.0)
 
         -- Find main point of the triangle.
-        local hActiveTheta <const> = (hueActive * tau) - angOffsetRadians
-        local xTri1 <const> = ringInEdge * math.cos(hActiveTheta)
-        local yTri1 <const> = ringInEdge * math.sin(hActiveTheta)
+        local lockTriRot <const> = active.lockTriRot
+        local thetaActive <const> = hueActive * tau
+        local thetaTri <const> = lockTriRot
+            and 0
+            or thetaActive - angOffsetRadians
+        local xTri1 <const> = ringInEdge * math.cos(thetaTri)
+        local yTri1 <const> = ringInEdge * math.sin(thetaTri)
 
         -- Find the other two triangle points, 120 degrees away.
         local rt32x <const> = sqrt3_2 * xTri1
@@ -878,7 +881,7 @@ dlg:check {
     text = defaults.triCheck,
     selected = defaults.lockTriRot,
     focus = false,
-    visible = false,
+    visible = true,
     onclick = function()
         local args <const> = dlg.data
         local lockTriRot <const> = args.lockTriRot or false --[[@as boolean]]
