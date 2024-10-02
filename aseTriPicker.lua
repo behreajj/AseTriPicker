@@ -24,7 +24,7 @@ local defaults <const> = {
 
     ringInEdge = 0.9,
     angOffsetRadians = 0.5235987755983,
-    swatchSize = 18,
+    swatchSize = 17,
     textDisplayLimit = 50,
     shiftLevels = 24,
 
