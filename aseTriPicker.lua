@@ -198,8 +198,8 @@ end
 ---@param g8 integer
 ---@param b8 integer
 ---@param t8 integer
----@param isBack boolean
-local function updateActiveFromRgba8(r8, g8, b8, t8, isBack)
+---@param isBackActive boolean
+local function updateActiveFromRgba8(r8, g8, b8, t8, isBackActive)
     local rMax <const> = active.rMax
     local gMax <const> = active.gMax
     local bMax <const> = active.bMax
@@ -217,27 +217,27 @@ local function updateActiveFromRgba8(r8, g8, b8, t8, isBack)
     so <const>,
     vo <const> = rgbToHsv(r01, g01, b01)
 
-    active[isBack and "redBack" or "redFore"] = rq
-    active[isBack and "greenBack" or "greenFore"] = gq
-    active[isBack and "blueBack" or "blueFore"] = bq
+    active[isBackActive and "redBack" or "redFore"] = rq
+    active[isBackActive and "greenBack" or "greenFore"] = gq
+    active[isBackActive and "blueBack" or "blueFore"] = bq
 
-    active[isBack and "alphaBack" or "alphaFore"] = t8
+    active[isBackActive and "alphaBack" or "alphaFore"] = t8
 
     if vo > 0.0 then
         if so > 0.0 then
-            active[isBack and "hueBack" or "hueFore"] = ho
+            active[isBackActive and "hueBack" or "hueFore"] = ho
         end
-        active[isBack and "satBack" or "satFore"] = so
+        active[isBackActive and "satBack" or "satFore"] = so
     end
-    active[isBack and "valBack" or "valFore"] = vo
+    active[isBackActive and "valBack" or "valFore"] = vo
 
     if vq > 0.0 then
         if sq > 0.0 then
-            active[isBack and "hqBack" or "hqFore"] = hq
+            active[isBackActive and "hqBack" or "hqFore"] = hq
         end
-        active[isBack and "sqBack" or "sqFore"] = sq
+        active[isBackActive and "sqBack" or "sqFore"] = sq
     end
-    active[isBack and "vqBack" or "vqFore"] = vq
+    active[isBackActive and "vqBack" or "vqFore"] = vq
 end
 
 ---@param event { context: GraphicsContext }
@@ -727,49 +727,28 @@ local function onMouseMove(event)
         local _ <const>, so <const>, vo <const> = rgbToHsv(r01, g01, b01)
         local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
 
+        active[isBackActive and "redBack" or "redFore"] = rq
+        active[isBackActive and "greenBack" or "greenFore"] = gq
+        active[isBackActive and "blueBack" or "blueFore"] = bq
+
+        if vo > 0.0 then
+            active[isBackActive and "satBack" or "satFore"] = so
+        end
+        active[isBackActive and "valBack" or "valFore"] = vo
+
+        if vq > 0.0 then
+            if sq > 0.0 then
+                active[isBackActive and "hqBack" or "hqFore"] = hq
+            end
+            active[isBackActive and "sqBack" or "sqFore"] = sq
+        end
+        active[isBackActive and "vqBack" or "vqFore"] = vq
+
         if isBackActive then
-            active.redBack = rq
-            active.greenBack = gq
-            active.blueBack = bq
-
-            if vo > 0.0 then
-                if so > 0.0 then
-                    active.satBack = so
-                end
-            end
-            active.valBack = vo
-
-            if vq > 0.0 then
-                if sq > 0.0 then
-                    active.hqBack = hq
-                end
-                active.sqBack = sq
-            end
-            active.vqBack = vq
-
             app.command.SwitchColors()
             app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
             app.command.SwitchColors()
         else
-            active.redFore = rq
-            active.greenFore = gq
-            active.blueFore = bq
-
-            if vo > 0.0 then
-                if so > 0.0 then
-                    active.satFore = so
-                end
-            end
-            active.valFore = vo
-
-            if vq > 0.0 then
-                if sq > 0.0 then
-                    active.hqFore = hq
-                end
-                active.sqFore = sq
-            end
-            active.vqFore = vq
-
             app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
         end -- End front or back color check.
     end     -- End is in tri or wheel check.
