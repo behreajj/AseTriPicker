@@ -30,6 +30,7 @@ local defaults <const> = {
     canvasKey = "C&ANVAS",
     closeKey = "&X",
 
+    -- https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values
     hueIncrKey = "ArrowRight",
     hueDecrKey = "ArrowLeft",
 }
