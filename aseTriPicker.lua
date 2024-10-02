@@ -21,7 +21,7 @@ local defaults <const> = {
 
     ringInEdge = 0.9,
     angOffsetRadians = 0.5235987755983,
-    swatchSize = 16,
+    swatchSize = 18,
     textDisplayLimit = 50,
     shiftLevels = 24,
 
@@ -564,7 +564,7 @@ local function updateFromAse(r8, g8, b8, t8, isBackActive)
     active[isBackActive and "redBack" or "redFore"] = rq
     active[isBackActive and "greenBack" or "greenFore"] = gq
     active[isBackActive and "blueBack" or "blueFore"] = bq
-    active[isBackActive and "alphaBack" or "alphaFore"] = t8
+    active[isBackActive and "alphaBack" or "alphaFore"] = t8 / 255.0
 
     local hq <const>, sq <const>, vq <const> = rgbToHsv(rq, gq, bq)
     if vq > 0.0 then
