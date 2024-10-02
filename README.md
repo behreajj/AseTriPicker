@@ -28,10 +28,6 @@ When the picker is wider than it is high, it will show text information about th
 
 Colors can be quantized to a bit depth in RGB using the sliders beneath the canvas. Quantization will lead to significant hue shift between colors within the same shading triangle.
 
-![Lock Tri](screenCap3.png)
-
-The triangle's rotation can be locked by clicking the check box. A white line will indicate the current hue position.
-
 ## Caveat
 
 Ultimately, the [HSV](https://en.wikipedia.org/wiki/HSL_and_HSV#Disadvantages) color representation is deeply flawed. Neither this color picker, nor HSV in general, should be used to create harmonious colors or determine shades of a hue. I would encourage readers to research alternatives like [CIE LAB](https://en.wikipedia.org/wiki/CIELAB_color_space), [SRLAB2](https://www.magnetkern.de/srlab2.html), [OK LAB](https://bottosson.github.io/posts/oklab/), [HSLuv](https://www.hsluv.org/) or [Okhsl](https://bottosson.github.io/posts/colorpicker/). An SRLAB2 picker is available at [AsepriteAddons](https://github.com/behreajj/AsepriteAddons); an Okhsl picker can be found [here](https://github.com/behreajj/asepriteokhsl).
