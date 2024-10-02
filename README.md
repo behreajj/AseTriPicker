@@ -30,7 +30,7 @@ Colors can be quantized to a bit depth in RGB using the sliders beneath the canv
 
 ![Lock Tri](screenCap3.png)
 
-The triangle's rotation can be locked by clicking the check box. A white reticle will indicate the current hue position.
+The triangle's rotation can be locked by clicking the check box. A white line will indicate the current hue position.
 
 ## Caveat
 
