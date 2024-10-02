@@ -196,63 +196,39 @@ local function updateActiveFromRgba8(r8, g8, b8, t8, isBack)
     local bMax <const> = active.bMax
 
     local r01 <const>, g01 <const>, b01 <const> = r8 / 255.0, g8 / 255.0, b8 / 255.0
-    local rq <const> = rMax ~= 0.0 and math.floor((r01) * rMax + 0.5) / rMax or 0.0
-    local gq <const> = gMax ~= 0.0 and math.floor((g01) * gMax + 0.5) / gMax or 0.0
-    local bq <const> = bMax ~= 0.0 and math.floor((b01) * bMax + 0.5) / bMax or 0.0
+    local rq <const> = math.floor((r01) * rMax + 0.5) / rMax
+    local gq <const> = math.floor((g01) * gMax + 0.5) / gMax
+    local bq <const> = math.floor((b01) * bMax + 0.5) / bMax
 
-    local hueQuantized <const>,
-    satQuantized <const>,
-    valQuantized <const> = rgbToHsv(rq, gq, bq)
+    local hq <const>,
+    sq <const>,
+    vq <const> = rgbToHsv(rq, gq, bq)
 
-    local hueOrig <const>,
-    satOrig <const>,
-    valOrig <const> = rgbToHsv(r01, g01, b01)
+    local ho <const>,
+    so <const>,
+    vo <const> = rgbToHsv(r01, g01, b01)
 
-    if isBack then
-        if valOrig > 0.0 then
-            if satOrig > 0.0 then
-                active.hueBack = hueOrig
-            end
-            active.satBack = satOrig
+    active[isBack and "redBack" or "redFore"] = rq
+    active[isBack and "greenBack" or "greenFore"] = gq
+    active[isBack and "blueBack" or "blueFore"] = bq
+
+    active[isBack and "alphaBack" or "alphaFore"] = t8
+
+    if vo > 0.0 then
+        if so > 0.0 then
+            active[isBack and "hueBack" or "hueFore"] = ho
         end
-        active.valBack = valOrig
-
-        if valQuantized > 0.0 then
-            if satQuantized > 0.0 then
-                active.hqBack = hueQuantized
-            end
-            active.sqBack = satQuantized
-        end
-        active.vqBack = valQuantized
-
-        active.redBack = rq
-        active.greenBack = gq
-        active.blueBack = bq
-
-        active.alphaBack = t8 / 255.0
-    else
-        if valOrig > 0.0 then
-            if satOrig > 0.0 then
-                active.hueFore = hueOrig
-            end
-            active.satFore = satOrig
-        end
-        active.valFore = valOrig
-
-        if valQuantized > 0.0 then
-            if satQuantized > 0.0 then
-                active.hqFore = hueQuantized
-            end
-            active.sqFore = satQuantized
-        end
-        active.vqFore = valQuantized
-
-        active.redFore = rq
-        active.greenFore = gq
-        active.blueFore = bq
-
-        active.alphaFore = t8 / 255.0
+        active[isBack and "satBack" or "satFore"] = so
     end
+    active[isBack and "valBack" or "valFore"] = vo
+
+    if vq > 0.0 then
+        if sq > 0.0 then
+            active[isBack and "hqBack" or "hqFore"] = hq
+        end
+        active[isBack and "sqBack" or "sqFore"] = sq
+    end
+    active[isBack and "vqBack" or "vqFore"] = vq
 end
 
 ---@param event { context: GraphicsContext }
