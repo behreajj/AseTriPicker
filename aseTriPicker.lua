@@ -923,11 +923,11 @@ dlg:button {
     text = defaults.foreKey,
     onclick = function()
         local fgColor <const> = app.fgColor
-        local r8 <const> = fgColor.red
-        local g8 <const> = fgColor.green
-        local b8 <const> = fgColor.blue
-        local t8 <const> = fgColor.alpha
-        updateActiveFromRgba8(r8, g8, b8, t8, false)
+        local r8fg <const> = fgColor.red
+        local g8fg <const> = fgColor.green
+        local b8fg <const> = fgColor.blue
+        local t8fg <const> = fgColor.alpha
+        updateActiveFromRgba8(r8fg, g8fg, b8fg, t8fg, false)
         dlg:repaint()
     end
 }
@@ -938,12 +938,12 @@ dlg:button {
     onclick = function()
         app.command.SwitchColors()
         local bgColor <const> = app.fgColor
-        local r8 <const> = bgColor.red
-        local g8 <const> = bgColor.green
-        local b8 <const> = bgColor.blue
-        local t8 <const> = bgColor.alpha
+        local r8bg <const> = bgColor.red
+        local g8bg <const> = bgColor.green
+        local b8bg <const> = bgColor.blue
+        local t8bg <const> = bgColor.alpha
         app.command.SwitchColors()
-        updateActiveFromRgba8(r8, g8, b8, t8, true)
+        updateActiveFromRgba8(r8bg, g8bg, b8bg, t8bg, true)
         dlg:repaint()
     end
 }
@@ -1042,6 +1042,26 @@ dlg:button {
         dlg:close()
     end
 }
+
+do
+    local fgColor <const> = app.fgColor
+    local r8fg <const> = fgColor.red
+    local g8fg <const> = fgColor.green
+    local b8fg <const> = fgColor.blue
+    local t8fg <const> = fgColor.alpha
+    updateActiveFromRgba8(r8fg, g8fg, b8fg, t8fg, false)
+
+    app.command.SwitchColors()
+    local bgColor <const> = app.fgColor
+    local r8bg <const> = bgColor.red
+    local g8bg <const> = bgColor.green
+    local b8bg <const> = bgColor.blue
+    local t8bg <const> = bgColor.alpha
+    app.command.SwitchColors()
+    updateActiveFromRgba8(r8bg, g8bg, b8bg, t8bg, true)
+
+    dlg:repaint()
+end
 
 dlg:show {
     autoscrollbars = false,
