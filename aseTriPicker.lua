@@ -598,7 +598,7 @@ end
 local dlg <const> = Dialog { title = "Color Picker" }
 
 ---@param event KeyEvent
-local function onKeyUp(event)
+local function onKeyDown(event)
     local isBackActive <const> = active.isBackActive
     local hueActive <const> = isBackActive
         and (active.hueBack or defaults.hue)
@@ -867,7 +867,7 @@ dlg:canvas {
     focus = true,
     width = defaults.wCanvas,
     height = defaults.hCanvas,
-    onkeyup = onKeyUp,
+    onkeydown = onKeyDown,
     onmousedown = onMouseDown,
     onmousemove = onMouseMove,
     onmouseup = onMouseUp,
