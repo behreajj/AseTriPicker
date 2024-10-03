@@ -18,7 +18,7 @@ A hot key can be assigned to the script by going to `Edit > Keyboard Shortcuts`.
 
 The dialog can be closed with `Alt+X`. The foreground color can be retrieved with `Alt+F`; the background color, with `Alt+B`. `Alt+A` will pick a color from the sprite canvas at the cursor position. When the default theme font is used, these shortcuts will be underlined.
 
-When the dialog canvas has focus, left click will change the foreground color; right click will adjust the background color. Clicking on the swatches in the bottom-left corner will swap the fore and background color. Clicking and dragging within the hue ring will change the unquantized hue. When the `Shift` key is held down, this change happens in 15 degree steps.
+When the dialog canvas has focus, left click will change the foreground color; right click will adjust the background color. Clicking on the swatches in the bottom-left corner will swap the fore and background color. Clicking and dragging within the hue ring will change the unquantized hue. When the `Shift` key is held down, this change happens in 15 degree steps. Pressing the arrow left and right keys will nudge the hue. Pressing the arrow up and down keys will nudge the value. Holding `Alt` while pressing the up and down keys will nudge the saturation.
 
 ![Expanded Screen Cap](screenCap1.png)
 
