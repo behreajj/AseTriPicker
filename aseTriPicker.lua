@@ -3,23 +3,13 @@ local oneTau <const> = 0.1591549430919
 local sqrt3_2 <const> = 0.86602540378444
 
 local defaults <const> = {
-    -- TODO: Like in ok_picker2.lua, to reduce lag, you need to store the byte
-    -- string for canavs image in active, then only repaint when necessary.
-    -- Unfortunately, you'd have to do this separately for the ring and for
-    -- the triangle, then composite them together with drawImage and the
-    -- appropritate blend mode (destination ove? source under?).
-
-    -- TODO: Draw the reticle separately as a vector image, do not draw it
-    -- as part of the hue wheel.
-
+    wCanvas = 200,
+    hCanvas = 200,
     lockTriRot = false,
 
     rLevels = 8,
     gLevels = 8,
     bLevels = 8,
-
-    wCanvas = 200,
-    hCanvas = 200,
 
     hue = 0.0,
     sat = 1.0,
@@ -100,6 +90,12 @@ local active <const> = {
     isBackActive = false,
     mouseDownRing = false,
     mouseDownTri = false,
+
+    triggerRingRepaint = true,
+    ringBytes = "",
+
+    triggerTriRepaint = true,
+    triBytes = ""
 }
 
 ---@param h number
@@ -168,11 +164,6 @@ end
 
 ---@param event { context: GraphicsContext }
 local function onPaint(event)
-    local angOffsetRadians <const> = defaults.angOffsetRadians
-    local lockTriRot <const> = active.lockTriRot
-    local ringInEdge <const> = defaults.ringInEdge
-    local sqRie <const> = ringInEdge * ringInEdge
-
     local ctx <const> = event.context
     ctx.antialias = false
     ctx.blendMode = BlendMode.SRC
@@ -180,8 +171,21 @@ local function onPaint(event)
     local wCanvas <const> = ctx.width
     local hCanvas <const> = ctx.height
     if wCanvas <= 1 or hCanvas <= 1 then return end
+
+    local needsRepaintResize <const> = active.wCanvas ~= wCanvas
+        or active.hCanvas ~= hCanvas
+    local needsRingRepaint <const> = active.triggerRingRepaint
+        or needsRepaintResize
+    local needsTriRepaint <const> = active.triggerTriRepaint
+        or needsRepaintResize
+
     active.wCanvas = wCanvas
     active.hCanvas = hCanvas
+
+    local angOffsetRadians <const> = defaults.angOffsetRadians
+    local lockTriRot <const> = active.lockTriRot
+    local ringInEdge <const> = defaults.ringInEdge
+    local sqRie <const> = ringInEdge * ringInEdge
 
     local xCenter <const> = wCanvas * 0.5
     local yCenter <const> = hCanvas * 0.5
@@ -251,93 +255,120 @@ local function onPaint(event)
     gBase <const>,
     bBase <const> = hsvToRgb(hueActive, 1.0, 1.0)
 
-    local themeColors <const> = app.theme.color
-    local bkgColor <const> = themeColors.window_face
-    local packZero <const> = strpack("B B B B",
-        bkgColor.red, bkgColor.green, bkgColor.blue, 255)
-
-    ---@type string[]
-    local byteStrs <const> = {}
+    local packAlpha <const> = strpack("B B B B", 0, 0, 0, 0)
     local lenCanvas <const> = wCanvas * hCanvas
-    local i = 0
-    while i < lenCanvas do
-        local yCanvas <const> = i // wCanvas
-        local yDlt <const> = yCenter - yCanvas
-        local yNrm <const> = yDlt * rCanvasInv
 
-        local xCanvas <const> = i % wCanvas
-        local xDlt <const> = xCanvas - xCenter
-        local xNrm <const> = xDlt * rCanvasInv
+    if needsRingRepaint then
+        ---@type string[]
+        local ringByteStrs <const> = {}
 
-        local sqMag <const> = xNrm * xNrm + yNrm * yNrm
+        local i = 0
+        while i < lenCanvas do
+            local ringByteStr = packAlpha
 
-        local byteStr = packZero
-        if sqMag >= sqRie and sqMag <= 1.0 then
-            -- Within the rim of the hue circle.
+            local yCanvas <const> = i // wCanvas
+            local yDlt <const> = yCenter - yCanvas
+            local yNrm <const> = yDlt * rCanvasInv
 
-            local angSigned <const> = atan(yNrm, xNrm)
-            local angRotated <const> = angOffsetRadians + angSigned
-            local angUnSigned <const> = angRotated % tau
+            local xCanvas <const> = i % wCanvas
+            local xDlt <const> = xCanvas - xCenter
+            local xNrm <const> = xDlt * rCanvasInv
 
-            local hueWheel <const> = angUnSigned * oneTau
-            local rWheel <const>,
-            gWheel <const>, bWheel <const> = hsvToRgb(hueWheel, 1.0, 1.0)
+            local sqMag <const> = xNrm * xNrm + yNrm * yNrm
+            if sqMag >= sqRie and sqMag <= 1.0 then
+                local angSigned <const> = atan(yNrm, xNrm)
+                local angRotated <const> = angOffsetRadians + angSigned
+                local angUnSigned <const> = angRotated % tau
 
-            byteStr = strpack("B B B B",
-                -- Quantized.
-                floor(floor(rWheel * rMax + 0.5) * rRatio + 0.5),
-                floor(floor(gWheel * gMax + 0.5) * gRatio + 0.5),
-                floor(floor(bWheel * bMax + 0.5) * bRatio + 0.5),
+                local hueWheel <const> = angUnSigned * oneTau
+                local rWheel <const>,
+                gWheel <const>, bWheel <const> = hsvToRgb(hueWheel, 1.0, 1.0)
 
-                -- Not quantized.
-                -- floor(rWheel * 255 + 0.5),
-                -- floor(gWheel * 255 + 0.5),
-                -- floor(bWheel * 255 + 0.5),
-
-                255)
-        elseif sqMag < sqRie then
-            -- Inscribed triangle.
-            local xbw <const> = xNrm - xTri3
-            local ybw <const> = yNrm - yTri3
-            local w1 <const> = (yDiff2_3 * xbw + xDiff3_2 * ybw) * bwDnmInv
-            local w2 <const> = (yDiff3_1 * xbw + xDiff1_3 * ybw) * bwDnmInv
-            local w3 <const> = 1.0 - w1 - w2
-
-            if w1 >= 0.0 and w1 <= 1.0
-                and w2 >= 0.0 and w2 <= 1.0
-                and w3 >= 0.0 and w3 <= 1.0 then
-                local wSum <const> = w1 + w2 + w3
-                local wSumInv <const> = wSum ~= 0.0 and 1.0 / wSum or 0.0
-                -- w2 is white, w3 is black.
-                -- Black saturation is undefined in HSV.
-                local v <const> = (w1 + w2) * wSumInv
-                local u <const> = (w1 + w3) * wSumInv
-
-                local diagSq <const> = u * u + v * v
-                local coeff <const> = diagSq <= 0.0 and 0.0 or w2
-
-                local rTri <const> = (w1 * rBase + coeff) * wSumInv
-                local gTri <const> = (w1 * gBase + coeff) * wSumInv
-                local bTri <const> = (w1 * bBase + coeff) * wSumInv
-
-                byteStr = strpack("B B B B",
-                    -- Quantized
-                    floor(floor(rTri * rMax + 0.5) * rRatio + 0.5),
-                    floor(floor(gTri * gMax + 0.5) * gRatio + 0.5),
-                    floor(floor(bTri * bMax + 0.5) * bRatio + 0.5),
+                ringByteStr = strpack("B B B B",
+                    -- Quantized.
+                    floor(floor(rWheel * rMax + 0.5) * rRatio + 0.5),
+                    floor(floor(gWheel * gMax + 0.5) * gRatio + 0.5),
+                    floor(floor(bWheel * bMax + 0.5) * bRatio + 0.5),
 
                     -- Not quantized.
-                    -- floor(rTri * 255 + 0.5),
-                    -- floor(gTri * 255 + 0.5),
-                    -- floor(bTri * 255 + 0.5),
+                    -- floor(rWheel * 255 + 0.5),
+                    -- floor(gWheel * 255 + 0.5),
+                    -- floor(bWheel * 255 + 0.5),
 
                     255)
-            end -- End ws inbounds.
-        end     -- End square mag.
+            end
 
-        i = i + 1
-        byteStrs[i] = byteStr
-    end -- End image loop.
+            i = i + 1
+            ringByteStrs[i] = ringByteStr
+        end
+
+        active.ringBytes = table.concat(ringByteStrs)
+        active.triggerRingRepaint = false
+    end
+
+    if needsTriRepaint then
+        ---@type string[]
+        local triByteStrs <const> = {}
+
+        local j = 0
+        while j < lenCanvas do
+            local triByteStr = packAlpha
+
+            local yCanvas <const> = j // wCanvas
+            local yDlt <const> = yCenter - yCanvas
+            local yNrm <const> = yDlt * rCanvasInv
+
+            local xCanvas <const> = j % wCanvas
+            local xDlt <const> = xCanvas - xCenter
+            local xNrm <const> = xDlt * rCanvasInv
+
+            local sqMag <const> = xNrm * xNrm + yNrm * yNrm
+            if sqMag < sqRie then
+                local xbw <const> = xNrm - xTri3
+                local ybw <const> = yNrm - yTri3
+                local w1 <const> = (yDiff2_3 * xbw + xDiff3_2 * ybw) * bwDnmInv
+                local w2 <const> = (yDiff3_1 * xbw + xDiff1_3 * ybw) * bwDnmInv
+                local w3 <const> = 1.0 - w1 - w2
+
+                if w1 >= 0.0 and w1 <= 1.0
+                    and w2 >= 0.0 and w2 <= 1.0
+                    and w3 >= 0.0 and w3 <= 1.0 then
+                    local wSum <const> = w1 + w2 + w3
+                    local wSumInv <const> = wSum ~= 0.0 and 1.0 / wSum or 0.0
+                    -- w2 is white, w3 is black.
+                    -- Black saturation is undefined in HSV.
+                    local v <const> = (w1 + w2) * wSumInv
+                    local u <const> = (w1 + w3) * wSumInv
+
+                    local diagSq <const> = u * u + v * v
+                    local coeff <const> = diagSq <= 0.0 and 0.0 or w2
+
+                    local rTri <const> = (w1 * rBase + coeff) * wSumInv
+                    local gTri <const> = (w1 * gBase + coeff) * wSumInv
+                    local bTri <const> = (w1 * bBase + coeff) * wSumInv
+
+                    triByteStr = strpack("B B B B",
+                        -- Quantized
+                        floor(floor(rTri * rMax + 0.5) * rRatio + 0.5),
+                        floor(floor(gTri * gMax + 0.5) * gRatio + 0.5),
+                        floor(floor(bTri * bMax + 0.5) * bRatio + 0.5),
+
+                        -- Not quantized.
+                        -- floor(rTri * 255 + 0.5),
+                        -- floor(gTri * 255 + 0.5),
+                        -- floor(bTri * 255 + 0.5),
+
+                        255)
+                end -- End ws in bounds.
+            end
+
+            j = j + 1
+            triByteStrs[j] = triByteStr
+        end
+
+        active.triBytes = table.concat(triByteStrs)
+        active.triggerTriRepaint = false
+    end
 
     -- Draw picker canvas.
     local imgSpec <const> = ImageSpec {
@@ -346,10 +377,22 @@ local function onPaint(event)
         transparentColor = 0,
         colorMode = ColorMode.RGB
     }
-    local img <const> = Image(imgSpec)
+
+    local imgRing <const> = Image(imgSpec)
+    imgRing.bytes = active.ringBytes
+
+    local imgTri <const> = Image(imgSpec)
+    imgTri.bytes = active.triBytes
+
+    local themeColors <const> = app.theme.color
+    local bkgColor <const> = themeColors.window_face
+    local imgComp <const> = Image(imgSpec)
+    imgComp:clear(bkgColor)
+    imgComp:drawImage(imgRing, Point(0, 0), 255, BlendMode.DST_OVER)
+    imgComp:drawImage(imgTri, Point(0, 0), 255, BlendMode.DST_OVER)
+
     local drawRect <const> = Rectangle(0, 0, wCanvas, hCanvas)
-    img.bytes = table.concat(byteStrs)
-    ctx:drawImage(img, drawRect, drawRect)
+    ctx:drawImage(imgComp, drawRect, drawRect)
 
     if lockTriRot then
         -- Draw hue reticle.
@@ -623,21 +666,27 @@ local function onKeyDown(event)
     local isAlt <const> = event.altKey
     if eventCode == defaults.hueIncrKey then
         updateFromHue((hueActive + hueStep) % 1.0)
+        active.triggerTriRepaint = true
         dlg:repaint()
     elseif eventCode == defaults.hueDecrKey then
         updateFromHue((hueActive - hueStep) % 1.0)
+        active.triggerTriRepaint = true
         dlg:repaint()
     elseif isAlt and eventCode == defaults.satIncrKey then
         updateFromSat(math.min(math.max(satActive + satStep, 0.0), 1.0))
+        active.triggerTriRepaint = true
         dlg:repaint()
     elseif isAlt and eventCode == defaults.satDecrKey then
         updateFromSat(math.min(math.max(satActive - satStep, 0.0), 1.0))
+        active.triggerTriRepaint = true
         dlg:repaint()
     elseif eventCode == defaults.valIncrKey then
         updateFromVal(math.min(math.max(valActive + valStep, 0.0), 1.0))
+        active.triggerTriRepaint = true
         dlg:repaint()
     elseif eventCode == defaults.valDecrKey then
         updateFromVal(math.min(math.max(valActive - valStep, 0.0), 1.0))
+        active.triggerTriRepaint = true
         dlg:repaint()
     end
 end
@@ -760,6 +809,7 @@ local function onMouseMove(event)
         updateQuantizedRgb(r01, g01, b01, isBackActive)
     end -- End is in tri or wheel.
 
+    active.triggerTriRepaint = true
     dlg:repaint()
 end
 
@@ -859,6 +909,7 @@ local function onMouseUp(event)
         active.greenFore = gTemp
         active.blueFore = bTemp
 
+        active.triggerTriRepaint = true
         dlg:repaint()
         app.command.SwitchColors()
     end
@@ -888,6 +939,7 @@ dlg:check {
         local args <const> = dlg.data
         local lockTriRot <const> = args.lockTriRot or false --[[@as boolean]]
         active.lockTriRot = lockTriRot
+        active.triggerTriRepaint = true
         dlg:repaint()
     end
 }
@@ -905,6 +957,8 @@ dlg:slider {
         local rLevels <const> = args.rLevels or 8 --[[@as integer]]
         active.rMax = (1 << rLevels) - 1.0
         updateFromLevels()
+        active.triggerTriRepaint = true
+        active.triggerRingRepaint = true
         dlg:repaint()
     end
 }
@@ -920,6 +974,8 @@ dlg:slider {
         local gLevels <const> = args.gLevels or 8 --[[@as integer]]
         active.gMax = (1 << gLevels) - 1.0
         updateFromLevels()
+        active.triggerTriRepaint = true
+        active.triggerRingRepaint = true
         dlg:repaint()
     end
 }
@@ -935,6 +991,8 @@ dlg:slider {
         local bLevels <const> = args.bLevels or 8 --[[@as integer]]
         active.bMax = (1 << bLevels) - 1.0
         updateFromLevels()
+        active.triggerTriRepaint = true
+        active.triggerRingRepaint = true
         dlg:repaint()
     end
 }
@@ -951,6 +1009,7 @@ dlg:button {
         local b8fg <const> = fgColor.blue
         local t8fg <const> = fgColor.alpha
         updateFromAse(r8fg, g8fg, b8fg, t8fg, false)
+        active.triggerTriRepaint = true
         dlg:repaint()
     end
 }
@@ -967,6 +1026,7 @@ dlg:button {
         local t8bg <const> = bgColor.alpha
         app.command.SwitchColors()
         updateFromAse(r8bg, g8bg, b8bg, t8bg, true)
+        active.triggerTriRepaint = true
         dlg:repaint()
     end
 }
@@ -1047,6 +1107,7 @@ dlg:button {
 
         if t8 > 0 then
             updateFromAse(r8, g8, b8, t8, false)
+            active.triggerTriRepaint = true
             dlg:repaint()
             app.fgColor = Color {
                 r = math.floor(active.redFore * 255 + 0.5),
