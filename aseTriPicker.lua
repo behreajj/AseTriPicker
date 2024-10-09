@@ -410,23 +410,21 @@ local function onPaint(event)
     local offset <const> = swatchSize // 2
 
     -- Draw background color swatch.
-    ctx.color = Color {
-        r = floor(redBack * 255 + 0.5),
-        g = floor(greenBack * 255 + 0.5),
-        b = floor(blueBack * 255 + 0.5),
-        a = 255
-    }
+    local r8Back <const> = math.floor(redBack * 255 + 0.5)
+    local g8Back <const> = math.floor(greenBack * 255 + 0.5)
+    local b8Back <const> = math.floor(blueBack * 255 + 0.5)
+
+    ctx.color = Color { r = r8Back, g = g8Back, b = b8Back, a = 255 }
     ctx:fillRect(Rectangle(
         offset, hCanvas - swatchSize - 1,
         swatchSize, swatchSize))
 
     -- Draw foreground color swatch.
-    ctx.color = Color {
-        r = floor(redFore * 255 + 0.5),
-        g = floor(greenFore * 255 + 0.5),
-        b = floor(blueFore * 255 + 0.5),
-        a = 255
-    }
+    local r8Fore <const> = math.floor(redFore * 255 + 0.5)
+    local g8Fore <const> = math.floor(greenFore * 255 + 0.5)
+    local b8Fore <const> = math.floor(blueFore * 255 + 0.5)
+
+    ctx.color = Color { r = r8Fore, g = g8Fore, b = b8Fore, a = 255 }
     ctx:fillRect(Rectangle(
         0, hCanvas - swatchSize - 1 - offset,
         swatchSize, swatchSize))
@@ -485,12 +483,15 @@ local function onPaint(event)
         ctx:fillText(string.format(
             "A: %.2f%%", alphaActive * 100), 2, 2 + yIncr * 8)
 
-        local r8 <const> = floor(redActive * 255 + 0.5)
-        local g8 <const> = floor(greenActive * 255 + 0.5)
-        local b8 <const> = floor(blueActive * 255 + 0.5)
+        local r8Active <const> = isBackActive and r8Back or r8Fore
+        local g8Active <const> = isBackActive and g8Back or g8Fore
+        local b8Active <const> = isBackActive and b8Back or b8Fore
 
-        ctx:fillText(string.format(
-            "#%06X", r8 << 0x10|g8 << 0x08|b8), 2, 2 + yIncr * 10)
+        ctx:fillText(string.format("#%06X",
+                r8Active << 0x10
+                | g8Active << 0x08
+                | b8Active),
+            2, 2 + yIncr * 10)
     end
 end
 
@@ -911,6 +912,20 @@ local function onMouseUp(event)
 
         active.triggerTriRepaint = true
         dlg:repaint()
+
+        app.fgColor = Color {
+            r = math.floor(active.redFore * 255 + 0.5),
+            g = math.floor(active.greenFore * 255 + 0.5),
+            b = math.floor(active.blueFore * 255 + 0.5),
+            a = 255
+        }
+        app.command.SwitchColors()
+        app.fgColor = Color {
+            r = math.floor(active.redBack * 255 + 0.5),
+            g = math.floor(active.greenBack * 255 + 0.5),
+            b = math.floor(active.blueBack * 255 + 0.5),
+            a = 255
+        }
         app.command.SwitchColors()
     end
 end
