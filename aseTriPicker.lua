@@ -3,8 +3,16 @@ local oneTau <const> = 0.1591549430919
 local sqrt3_2 <const> = 0.86602540378444
 
 local defaults <const> = {
+    -- TODO: Like in ok_picker2.lua, to reduce lag, you need to store the byte
+    -- string for canavs image in active, then only repaint when necessary.
+    -- Unfortunately, you'd have to do this separately for the ring and for
+    -- the triangle, then composite them together with drawImage and the
+    -- appropritate blend mode (destination ove? source under?).
+
+    -- TODO: Draw the reticle separately as a vector image, do not draw it
+    -- as part of the hue wheel.
+
     lockTriRot = false,
-    hueReticle = 0.0125,
 
     rLevels = 8,
     gLevels = 8,
@@ -161,7 +169,6 @@ end
 ---@param event { context: GraphicsContext }
 local function onPaint(event)
     local angOffsetRadians <const> = defaults.angOffsetRadians
-    local hueReticule <const> = defaults.hueReticle
     local lockTriRot <const> = active.lockTriRot
     local ringInEdge <const> = defaults.ringInEdge
     local sqRie <const> = ringInEdge * ringInEdge
@@ -239,7 +246,6 @@ local function onPaint(event)
     local strpack <const> = string.pack
     local floor <const> = math.floor
     local atan <const> = math.atan
-    local abs <const> = math.abs
 
     local rBase <const>,
     gBase <const>,
@@ -255,47 +261,44 @@ local function onPaint(event)
     local lenCanvas <const> = wCanvas * hCanvas
     local i = 0
     while i < lenCanvas do
-        local xCanvas <const> = i % wCanvas
         local yCanvas <const> = i // wCanvas
+        local yDlt <const> = yCenter - yCanvas
+        local yNrm <const> = yDlt * rCanvasInv
 
-        local xDelta <const> = xCanvas - xCenter
-        local yDelta <const> = yCenter - yCanvas
+        local xCanvas <const> = i % wCanvas
+        local xDlt <const> = xCanvas - xCenter
+        local xNrm <const> = xDlt * rCanvasInv
 
-        local xNorm <const> = xDelta * rCanvasInv
-        local yNorm <const> = yDelta * rCanvasInv
-        local sqMag <const> = xNorm * xNorm + yNorm * yNorm
+        local sqMag <const> = xNrm * xNrm + yNrm * yNrm
 
         local byteStr = packZero
         if sqMag >= sqRie and sqMag <= 1.0 then
             -- Within the rim of the hue circle.
 
-            local angSigned <const> = atan(yNorm, xNorm)
-            local angUnSigned <const> = (angOffsetRadians + angSigned) % tau
+            local angSigned <const> = atan(yNrm, xNrm)
+            local angRotated <const> = angOffsetRadians + angSigned
+            local angUnSigned <const> = angRotated % tau
 
-            if lockTriRot and abs(angUnSigned - thetaActive) < hueReticule then
-                byteStr = strpack("B B B B", 255, 255, 255, 255)
-            else
-                local hueWheel <const> = angUnSigned * oneTau
-                local rWheel <const>,
-                gWheel <const>, bWheel <const> = hsvToRgb(hueWheel, 1.0, 1.0)
+            local hueWheel <const> = angUnSigned * oneTau
+            local rWheel <const>,
+            gWheel <const>, bWheel <const> = hsvToRgb(hueWheel, 1.0, 1.0)
 
-                byteStr = strpack("B B B B",
-                    -- Quantized.
-                    floor(floor(rWheel * rMax + 0.5) * rRatio + 0.5),
-                    floor(floor(gWheel * gMax + 0.5) * gRatio + 0.5),
-                    floor(floor(bWheel * bMax + 0.5) * bRatio + 0.5),
+            byteStr = strpack("B B B B",
+                -- Quantized.
+                floor(floor(rWheel * rMax + 0.5) * rRatio + 0.5),
+                floor(floor(gWheel * gMax + 0.5) * gRatio + 0.5),
+                floor(floor(bWheel * bMax + 0.5) * bRatio + 0.5),
 
-                    -- Not quantized.
-                    -- floor(rWheel * 255 + 0.5),
-                    -- floor(gWheel * 255 + 0.5),
-                    -- floor(bWheel * 255 + 0.5),
+                -- Not quantized.
+                -- floor(rWheel * 255 + 0.5),
+                -- floor(gWheel * 255 + 0.5),
+                -- floor(bWheel * 255 + 0.5),
 
-                    255)
-            end
+                255)
         elseif sqMag < sqRie then
             -- Inscribed triangle.
-            local xbw <const> = xNorm - xTri3
-            local ybw <const> = yNorm - yTri3
+            local xbw <const> = xNrm - xTri3
+            local ybw <const> = yNrm - yTri3
             local w1 <const> = (yDiff2_3 * xbw + xDiff3_2 * ybw) * bwDnmInv
             local w2 <const> = (yDiff3_1 * xbw + xDiff1_3 * ybw) * bwDnmInv
             local w3 <const> = 1.0 - w1 - w2
@@ -348,6 +351,18 @@ local function onPaint(event)
     img.bytes = table.concat(byteStrs)
     ctx:drawImage(img, drawRect, drawRect)
 
+    if lockTriRot then
+        -- Draw hue reticle.
+        local cosa <const> = math.cos(thetaActive - angOffsetRadians)
+        local sina <const> = math.sin(thetaActive - angOffsetRadians)
+        local ringInner = rCanvas * ringInEdge
+        ctx.strokeWidth = 3
+        ctx.color = Color(255, 255, 255, 255)
+        ctx:moveTo(xCenter + ringInner * cosa, yCenter - ringInner * sina)
+        ctx:lineTo(xCenter + rCanvas * cosa, yCenter - rCanvas * sina)
+        ctx:stroke()
+    end
+
     local swatchSize <const> = defaults.swatchSize
     local offset <const> = swatchSize // 2
 
@@ -376,11 +391,11 @@ local function onPaint(event)
     -- If dialog is wide enough, draw diagnostic text.
     if (wCanvas - hCanvas) > defaults.textDisplayLimit
         and rCanvas > (swatchSize + swatchSize) then
-        local textSize <const> = ctx:measureText("E")
-        local yIncr <const> = textSize.height + 4
-
         local textColor <const> = themeColors.text
         ctx.color = textColor
+
+        local textSize <const> = ctx:measureText("E")
+        local yIncr <const> = textSize.height + 4
 
         local hqActive <const> = isBackActive
             and (active.hqBack or 0.0)
@@ -395,21 +410,15 @@ local function onPaint(event)
         if vqActive > 0.0 and sqActive > 0.0 then
             ctx:fillText(string.format(
                 "H: %.2f", hqActive * 360), 2, 2)
-            -- print(string.format(
-            --     "H: %.2f", hqActive * 360))
         end
 
         if vqActive > 0.0 then
             ctx:fillText(string.format(
                 "S: %.2f%%", sqActive * 100), 2, 2 + yIncr)
-            -- print(string.format(
-            --     "S: %.2f%%", sqActive * 100))
         end
 
         ctx:fillText(string.format(
             "V: %.2f%%", vqActive * 100), 2, 2 + yIncr * 2)
-        -- print(string.format(
-        --     "V: %.2f%%", vqActive * 100))
 
         local redActive <const> = isBackActive
             and redBack
@@ -433,23 +442,12 @@ local function onPaint(event)
         ctx:fillText(string.format(
             "A: %.2f%%", alphaActive * 100), 2, 2 + yIncr * 8)
 
-        -- print(string.format(
-        --     "R: %.2f%%", redActive * 100))
-        -- print(string.format(
-        --     "G: %.2f%%", greenActive * 100))
-        -- print(string.format(
-        --     "B: %.2f%%", blueActive * 100))
-        -- print(string.format(
-        --     "A: %.2f%%", alphaActive * 100))
-
         local r8 <const> = floor(redActive * 255 + 0.5)
         local g8 <const> = floor(greenActive * 255 + 0.5)
         local b8 <const> = floor(blueActive * 255 + 0.5)
 
         ctx:fillText(string.format(
             "#%06X", r8 << 0x10|g8 << 0x08|b8), 2, 2 + yIncr * 10)
-        -- print(string.format(
-        --     "#%06X", r8 << 0x10| g8 << 0x08 | b8))
     end
 end
 
@@ -655,8 +653,8 @@ local function onMouseMove(event)
     local xMouseMove <const> = event.x
     local yMouseMove <const> = event.y
 
-    local wCanvas <const> = active.wCanvas or 200
-    local hCanvas <const> = active.hCanvas or 200
+    local wCanvas <const> = active.wCanvas
+    local hCanvas <const> = active.hCanvas
     local xCenter <const> = wCanvas * 0.5
     local yCenter <const> = hCanvas * 0.5
     local shortEdge <const> = math.min(wCanvas, hCanvas)
@@ -670,9 +668,10 @@ local function onMouseMove(event)
     local yNorm <const> = yDelta * rCanvasInv
 
     if isRing then
-        local angSigned <const> = math.atan(yNorm, xNorm)
         local angOffsetRadians <const> = defaults.angOffsetRadians
-        local hwSigned = (angSigned + angOffsetRadians) * oneTau
+        local angSigned <const> = math.atan(yNorm, xNorm)
+        local angRotated <const> = angSigned + angOffsetRadians
+        local hwSigned = angRotated * oneTau
         if event.shiftKey then
             local shiftLevels <const> = defaults.shiftLevels
             hwSigned = math.floor(0.5 + hwSigned * shiftLevels) / shiftLevels
@@ -692,11 +691,14 @@ local function onMouseMove(event)
         -- Find main point of the triangle.
         local lockTriRot <const> = active.lockTriRot
         local thetaActive <const> = hueActive * tau
-        local thetaTri <const> = lockTriRot
-            and 0
-            or thetaActive - angOffsetRadians
-        local xTri1 <const> = ringInEdge * math.cos(thetaTri)
-        local yTri1 <const> = ringInEdge * math.sin(thetaTri)
+
+        local xTri1 = ringInEdge * 1.0
+        local yTri1 = ringInEdge * 0.0
+        if not lockTriRot then
+            local thetaTri <const> = thetaActive - angOffsetRadians
+            xTri1 = ringInEdge * math.cos(thetaTri)
+            yTri1 = ringInEdge * math.sin(thetaTri)
+        end
 
         -- Find the other two triangle points, 120 degrees away.
         local rt32x <const> = sqrt3_2 * xTri1
@@ -766,11 +768,11 @@ local function onMouseDown(event)
     local xMouseDown <const> = event.x
     local yMouseDown <const> = event.y
 
-    local ringInEdge <const> = defaults.ringInEdge or 0.9
+    local ringInEdge <const> = defaults.ringInEdge
     local sqRie <const> = ringInEdge * ringInEdge
 
-    local wCanvas <const> = active.wCanvas or 200
-    local hCanvas <const> = active.hCanvas or 200
+    local wCanvas <const> = active.wCanvas
+    local hCanvas <const> = active.hCanvas
     local xCenter <const> = wCanvas * 0.5
     local yCenter <const> = hCanvas * 0.5
     local shortEdge <const> = math.min(wCanvas, hCanvas)
