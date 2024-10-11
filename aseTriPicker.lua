@@ -2,10 +2,28 @@ local tau <const> = 6.2831853071796
 local oneTau <const> = 0.1591549430919
 local sqrt3_2 <const> = 0.86602540378444
 
+local screenScale = 1
+if app.preferences then
+    local generalPrefs <const> = app.preferences.general
+    if generalPrefs then
+        local ssCand <const> = generalPrefs.screen_scale --[[@as integer]]
+        if ssCand and ssCand > 0 then
+            screenScale = ssCand
+        end
+    end
+end
+
 local defaults <const> = {
-    wCanvas = 200,
-    hCanvas = 200,
+    -- TODO: Apply bit depth option for
+    -- the hex code in the text display. See JSWork
+    -- for the idea.
     lockTriRot = false,
+
+    wCanvas = math.max(16, 200 // screenScale),
+    hCanvas = math.max(16, 200 // screenScale),
+    reticleSize = math.max(3, 6 // screenScale),
+    reticleStroke = math.max(1, 1 // screenScale),
+    swatchSize = math.max(4, 17 // screenScale),
 
     rLevels = 8,
     gLevels = 8,
@@ -22,7 +40,7 @@ local defaults <const> = {
 
     ringInEdge = 0.9,
     angOffsetRadians = 0.5235987755983,
-    swatchSize = 17,
+
     textDisplayLimit = 50,
     shiftLevels = 24,
 
@@ -33,8 +51,8 @@ local defaults <const> = {
     triCheck = "Tri Lock",
 
     hueStep = 0.0013180565309174,
-    satStep = 0.01,
-    valStep = 0.01,
+    satStep = 1.0 / 255.0,
+    valStep = 1.0 / 255.0,
     shiftScalar = 5.0,
 
     -- https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values
@@ -238,11 +256,14 @@ local function onPaint(event)
 
     -- For calculation of barycentric coordinates.
     -- Cf. https://codeplea.com/triangular-interpolation
+    local xDiff2_3 <const> = xTri2 - xTri3
     local yDiff2_3 <const> = yTri2 - yTri3
     local xDiff1_3 <const> = xTri1 - xTri3
-    local xDiff3_2 <const> = xTri3 - xTri2
     local yDiff1_3 <const> = yTri1 - yTri3
+    local xDiff3_2 <const> = xTri3 - xTri2
     local yDiff3_1 <const> = yTri3 - yTri1
+    local xDiff1_2 <const> = xTri1 - xTri2
+    local yDiff1_2 <const> = yTri1 - yTri2
     local bwDenom <const> = yDiff2_3 * xDiff1_3 + xDiff3_2 * yDiff1_3
     local bwDnmInv <const> = bwDenom ~= 0.0 and 1.0 / bwDenom or 0.0
 
@@ -394,6 +415,35 @@ local function onPaint(event)
     local drawRect <const> = Rectangle(0, 0, wCanvas, hCanvas)
     ctx:drawImage(imgComp, drawRect, drawRect)
 
+    -- Draw reticle.
+    local satActive <const> = isBackActive
+        and active.satBack
+        or active.satFore
+    local valActive <const> = isBackActive
+        and active.valBack
+        or active.valFore
+
+    local sv <const> = satActive * valActive
+    local xRet01 = xTri3
+        + xDiff2_3 * valActive
+        + xDiff1_2 * sv
+    local yRet01 = yTri3
+        + yDiff2_3 * valActive
+        + yDiff1_2 * sv
+
+    local xReticle <const> = xCenter + xRet01 * rCanvas
+    local yReticle <const> = yCenter - yRet01 * rCanvas
+
+    local reticleSize <const> = defaults.reticleSize
+    local reticleHalf <const> = reticleSize // 2
+    ctx.color = valActive < 0.5 and Color(255, 255, 255, 255)
+        or Color(0, 0, 0, 255)
+    ctx.strokeWidth = defaults.reticleStroke
+    ctx:strokeRect(Rectangle(
+        xReticle - reticleHalf,
+        yReticle - reticleHalf,
+        reticleSize, reticleSize))
+
     if lockTriRot then
         -- Draw hue reticle.
         local cosa <const> = math.cos(thetaActive - angOffsetRadians)
@@ -439,14 +489,14 @@ local function onPaint(event)
         local yIncr <const> = textSize.height + 4
 
         local hqActive <const> = isBackActive
-            and (active.hqBack or 0.0)
-            or (active.hqFore or 0.0)
+            and active.hqBack
+            or active.hqFore
         local sqActive <const> = isBackActive
-            and (active.sqBack or 0.0)
-            or (active.sqFore or 0.0)
+            and active.sqBack
+            or active.sqFore
         local vqActive <const> = isBackActive
-            and (active.vqBack or 0.0)
-            or (active.vqFore or 0.0)
+            and active.vqBack
+            or active.vqFore
 
         if vqActive > 0.0 and sqActive > 0.0 then
             ctx:fillText(string.format(
