@@ -14,9 +14,6 @@ if app.preferences then
 end
 
 local defaults <const> = {
-    -- TODO: Apply bit depth option for
-    -- the hex code in the text display. See JSWork
-    -- for the idea.
     lockTriRot = false,
 
     wCanvas = math.max(16, 200 // screenScale),
@@ -72,6 +69,10 @@ local active <const> = {
 
     wCanvas = defaults.wCanvas,
     hCanvas = defaults.hCanvas,
+
+    rLevels = 8,
+    gLevels = 8,
+    bLevels = 8,
 
     rMax = 255.0,
     gMax = 255.0,
@@ -306,16 +307,9 @@ local function onPaint(event)
                 gWheel <const>, bWheel <const> = hsvToRgb(hueWheel, 1.0, 1.0)
 
                 ringByteStr = strpack("B B B B",
-                    -- Quantized.
                     floor(floor(rWheel * rMax + 0.5) * rRatio + 0.5),
                     floor(floor(gWheel * gMax + 0.5) * gRatio + 0.5),
                     floor(floor(bWheel * bMax + 0.5) * bRatio + 0.5),
-
-                    -- Not quantized.
-                    -- floor(rWheel * 255 + 0.5),
-                    -- floor(gWheel * 255 + 0.5),
-                    -- floor(bWheel * 255 + 0.5),
-
                     255)
             end
 
@@ -369,16 +363,9 @@ local function onPaint(event)
                     local bTri <const> = (w1 * bBase + coeff) * wSumInv
 
                     triByteStr = strpack("B B B B",
-                        -- Quantized
                         floor(floor(rTri * rMax + 0.5) * rRatio + 0.5),
                         floor(floor(gTri * gMax + 0.5) * gRatio + 0.5),
                         floor(floor(bTri * bMax + 0.5) * bRatio + 0.5),
-
-                        -- Not quantized.
-                        -- floor(rTri * 255 + 0.5),
-                        -- floor(gTri * 255 + 0.5),
-                        -- floor(bTri * 255 + 0.5),
-
                         255)
                 end -- End ws in bounds.
             end
@@ -533,14 +520,20 @@ local function onPaint(event)
         ctx:fillText(string.format(
             "A: %.2f%%", alphaActive * 100), 2, 2 + yIncr * 8)
 
-        local r8Active <const> = isBackActive and r8Back or r8Fore
-        local g8Active <const> = isBackActive and g8Back or g8Fore
-        local b8Active <const> = isBackActive and b8Back or b8Fore
+        local rBitDepth <const> = active.rLevels
+        local gBitDepth <const> = active.gLevels
+        local bBitDepth <const> = active.bLevels
 
-        ctx:fillText(string.format("#%06X",
-                r8Active << 0x10
-                | g8Active << 0x08
-                | b8Active),
+        local bShift <const> = 0
+        local gShift <const> = bShift + bBitDepth
+        local rShift <const> = gShift + gBitDepth
+        local hexPad <const> = math.ceil((rShift + rBitDepth) * 0.25)
+
+        local hex <const> = floor(redActive * rMax + 0.5) << rShift
+            | floor(greenActive * gMax + 0.5) << gShift
+            | floor(blueActive * bMax + 0.5) << bShift
+
+        ctx:fillText(string.format("#%0" .. hexPad .. "X", hex),
             2, 2 + yIncr * 10)
     end
 end
@@ -1020,6 +1013,7 @@ dlg:slider {
     onchange = function()
         local args <const> = dlg.data
         local rLevels <const> = args.rLevels or 8 --[[@as integer]]
+        active.rLevels = rLevels
         active.rMax = (1 << rLevels) - 1.0
         updateFromLevels()
         active.triggerTriRepaint = true
@@ -1037,6 +1031,7 @@ dlg:slider {
     onchange = function()
         local args <const> = dlg.data
         local gLevels <const> = args.gLevels or 8 --[[@as integer]]
+        active.gLevels = gLevels
         active.gMax = (1 << gLevels) - 1.0
         updateFromLevels()
         active.triggerTriRepaint = true
@@ -1054,6 +1049,7 @@ dlg:slider {
     onchange = function()
         local args <const> = dlg.data
         local bLevels <const> = args.bLevels or 8 --[[@as integer]]
+        active.bLevels = bLevels
         active.bMax = (1 << bLevels) - 1.0
         updateFromLevels()
         active.triggerTriRepaint = true
