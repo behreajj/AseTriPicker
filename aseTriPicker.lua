@@ -52,10 +52,12 @@ local defaults <const> = {
     valStep = 1.0 / 255.0,
     shiftScalar = 5.0,
 
-    -- https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values
-    -- The issue with arrow keys is that when a selection is being transformed,
-    -- these inputs get eaten. Other keys, like WASD and QE interfere with
-    -- magic wand, etc. For now, saturation nudging needs Alt key.
+    -- https://developer.mozilla.org/en-US/docs/Web/
+    -- API/UI_Events/Keyboard_event_code_values
+    -- The issue with arrow keys is that when a selection is being
+    -- transformed, these inputs get eaten. Other keys, like WASD
+    -- and QE interfere with magic wand, etc. For now, saturation
+    -- nudging needs Alt key.
     hueIncrKey = "ArrowRight",
     hueDecrKey = "ArrowLeft",
     satIncrKey = "ArrowUp",
@@ -268,7 +270,7 @@ local function onPaint(event)
     local bwDenom <const> = yDiff2_3 * xDiff1_3 + xDiff3_2 * yDiff1_3
     local bwDnmInv <const> = bwDenom ~= 0.0 and 1.0 / bwDenom or 0.0
 
-    -- Cache method used in while loop.
+    -- Cache methods used in while loop.
     local strpack <const> = string.pack
     local floor <const> = math.floor
     local atan <const> = math.atan
@@ -304,7 +306,8 @@ local function onPaint(event)
 
                 local hueWheel <const> = angUnSigned * oneTau
                 local rWheel <const>,
-                gWheel <const>, bWheel <const> = hsvToRgb(hueWheel, 1.0, 1.0)
+                gWheel <const>,
+                bWheel <const> = hsvToRgb(hueWheel, 1.0, 1.0)
 
                 ringByteStr = strpack("B B B B",
                     floor(floor(rWheel * rMax + 0.5) * rRatio + 0.5),
@@ -411,24 +414,24 @@ local function onPaint(event)
         or active.valFore
 
     local sv <const> = satActive * valActive
-    local xRet01 = xTri3
+    local xRet01 <const> = xTri3
         + xDiff2_3 * valActive
         + xDiff1_2 * sv
-    local yRet01 = yTri3
+    local yRet01 <const> = yTri3
         + yDiff2_3 * valActive
         + yDiff1_2 * sv
 
     local xReticle <const> = xCenter + xRet01 * rCanvas
     local yReticle <const> = yCenter - yRet01 * rCanvas
-
     local reticleSize <const> = defaults.reticleSize
-    local reticleHalf <const> = reticleSize // 2
+    local reticleHalf <const> = reticleSize * 0.5
+
     ctx.color = valActive < 0.5 and Color(255, 255, 255, 255)
         or Color(0, 0, 0, 255)
     ctx.strokeWidth = defaults.reticleStroke
     ctx:strokeRect(Rectangle(
-        xReticle - reticleHalf,
-        yReticle - reticleHalf,
+        math.floor(xReticle - reticleHalf),
+        math.floor(yReticle - reticleHalf),
         reticleSize, reticleSize))
 
     if lockTriRot then
@@ -646,7 +649,9 @@ end
 ---@param t8 integer
 ---@param isBackActive boolean
 local function updateFromAse(r8, g8, b8, t8, isBackActive)
-    local r01 <const>, g01 <const>, b01 <const> = r8 / 255.0, g8 / 255.0, b8 / 255.0
+    local r01 <const>,
+    g01 <const>,
+    b01 <const> = r8 / 255.0, g8 / 255.0, b8 / 255.0
 
     local ho <const>, so <const>, vo <const> = rgbToHsv(r01, g01, b01)
     if vo > 0.0 then
@@ -995,7 +1000,8 @@ dlg:check {
     visible = true,
     onclick = function()
         local args <const> = dlg.data
-        local lockTriRot <const> = args.lockTriRot or false --[[@as boolean]]
+        local lockTriRot <const> = args.lockTriRot
+            or defaults.lockTriRot --[[@as boolean]]
         active.lockTriRot = lockTriRot
         active.triggerTriRepaint = true
         dlg:repaint()
@@ -1012,7 +1018,8 @@ dlg:slider {
     focus = false,
     onchange = function()
         local args <const> = dlg.data
-        local rLevels <const> = args.rLevels or 8 --[[@as integer]]
+        local rLevels <const> = args.rLevels
+            or defaults.rLevels --[[@as integer]]
         active.rLevels = rLevels
         active.rMax = (1 << rLevels) - 1.0
         updateFromLevels()
@@ -1030,7 +1037,8 @@ dlg:slider {
     focus = false,
     onchange = function()
         local args <const> = dlg.data
-        local gLevels <const> = args.gLevels or 8 --[[@as integer]]
+        local gLevels <const> = args.gLevels
+            or defaults.gLevels --[[@as integer]]
         active.gLevels = gLevels
         active.gMax = (1 << gLevels) - 1.0
         updateFromLevels()
@@ -1048,7 +1056,8 @@ dlg:slider {
     focus = false,
     onchange = function()
         local args <const> = dlg.data
-        local bLevels <const> = args.bLevels or 8 --[[@as integer]]
+        local bLevels <const> = args.bLevels
+            or defaults.bLevels --[[@as integer]]
         active.bLevels = bLevels
         active.bMax = (1 << bLevels) - 1.0
         updateFromLevels()
