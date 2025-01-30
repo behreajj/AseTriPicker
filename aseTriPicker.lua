@@ -78,8 +78,8 @@ local defaults <const> = {
     valIncrKey = "ArrowUp",
     valDecrKey = "ArrowDown",
 
-    aCheck = 0.5, -- 0x80 / 0xff
-    bCheck = 0.8, -- 0xca / 0xff
+    aCheck = 0.25,
+    bCheck = 0.4,
     wCheck = math.max(1, 6 // screenScale),
     hCheck = math.max(1, 6 // screenScale),
 }
