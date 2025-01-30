@@ -21,11 +21,17 @@ local defaults <const> = {
     reticleSize = math.max(3, 6 // screenScale),
     reticleStroke = math.max(1, 1 // screenScale),
     swatchSize = math.max(4, 17 // screenScale),
-    swatchMargin = math.max(4, 8 // screenScale),
+    swatchMargin = math.max(3, 6 // screenScale),
 
-    rLevels = 8,
-    gLevels = 8,
-    bLevels = 8,
+    showAlphaBar = false,
+    showForeButton = true,
+    showBackButton = true,
+    showSampleButton = false,
+    showExitButton = true,
+
+    rBitDepth = 8,
+    gBitDepth = 8,
+    bBitDepth = 8,
 
     hue = 0.0,
     sat = 1.0,
@@ -44,9 +50,9 @@ local defaults <const> = {
 
     foreKey = "&FORE",
     backKey = "&BACK",
-    canvasKey = "C&ANVAS",
-    closeKey = "&X",
-    triCheck = "Tri Lock",
+    sampleKey = "S&AMPLE",
+    optionsKey = "&+",
+    exitKey = "&X",
 
     hueStep = 0.0013180565309174,
     satStep = 1.0 / 255.0,
@@ -73,9 +79,9 @@ local active <const> = {
     wCanvas = defaults.wCanvas,
     hCanvas = defaults.hCanvas,
 
-    rLevels = 8,
-    gLevels = 8,
-    bLevels = 8,
+    rBitDepth = 8,
+    gBitDepth = 8,
+    bBitDepth = 8,
 
     rMax = 255.0,
     gMax = 255.0,
@@ -461,7 +467,7 @@ local function onPaint(event)
 
     ctx.color = Color { r = r8Back, g = g8Back, b = b8Back, a = 255 }
     ctx:fillRect(Rectangle(
-        xSwatch, ySwatch,
+        xSwatch - offset, ySwatch,
         swatchSize, swatchSize))
 
     -- Draw foreground color swatch.
@@ -471,7 +477,7 @@ local function onPaint(event)
 
     ctx.color = Color { r = r8Fore, g = g8Fore, b = b8Fore, a = 255 }
     ctx:fillRect(Rectangle(
-        xSwatch - offset, ySwatch - offset,
+        xSwatch, ySwatch - offset,
         swatchSize, swatchSize))
 
     -- If dialog is wide enough, draw diagnostic text.
@@ -528,9 +534,9 @@ local function onPaint(event)
         ctx:fillText(string.format(
             "A: %.2f%%", alphaActive * 100), 2, 2 + yIncr * 8)
 
-        local rBitDepth <const> = active.rLevels
-        local gBitDepth <const> = active.gLevels
-        local bBitDepth <const> = active.bLevels
+        local rBitDepth <const> = active.rBitDepth
+        local gBitDepth <const> = active.gBitDepth
+        local bBitDepth <const> = active.bBitDepth
 
         local bShift <const> = 0
         local gShift <const> = bShift + bBitDepth
@@ -636,7 +642,7 @@ local function updateFromVal(val)
     updateQuantizedHsv(hueWheel, satWheel, val, isBackActive)
 end
 
-local function updateFromLevels()
+local function updateFromBitDepth()
     local r01Fore <const> = active.redFore
     local g01Fore <const> = active.greenFore
     local b01Fore <const> = active.blueFore
@@ -690,7 +696,12 @@ local function updateFromAse(r8, g8, b8, t8, isBackActive)
     active[isBackActive and "vqBack" or "vqFore"] = vq
 end
 
-local dlg <const> = Dialog { title = "Color Picker" }
+local dlgMain <const> = Dialog { title = "Triangle Color Picker" }
+
+local dlgOptions <const> = Dialog {
+    title = "Triangle Options",
+    parent = dlgMain
+}
 
 ---@param event KeyEvent
 local function onKeyDown(event)
@@ -721,27 +732,27 @@ local function onKeyDown(event)
     if eventCode == defaults.hueIncrKey then
         updateFromHue((hueActive + hueStep) % 1.0)
         active.triggerTriRepaint = true
-        dlg:repaint()
+        dlgMain:repaint()
     elseif eventCode == defaults.hueDecrKey then
         updateFromHue((hueActive - hueStep) % 1.0)
         active.triggerTriRepaint = true
-        dlg:repaint()
+        dlgMain:repaint()
     elseif isAlt and eventCode == defaults.satIncrKey then
         updateFromSat(math.min(math.max(satActive + satStep, 0.0), 1.0))
         active.triggerTriRepaint = true
-        dlg:repaint()
+        dlgMain:repaint()
     elseif isAlt and eventCode == defaults.satDecrKey then
         updateFromSat(math.min(math.max(satActive - satStep, 0.0), 1.0))
         active.triggerTriRepaint = true
-        dlg:repaint()
+        dlgMain:repaint()
     elseif eventCode == defaults.valIncrKey then
         updateFromVal(math.min(math.max(valActive + valStep, 0.0), 1.0))
         active.triggerTriRepaint = true
-        dlg:repaint()
+        dlgMain:repaint()
     elseif eventCode == defaults.valDecrKey then
         updateFromVal(math.min(math.max(valActive - valStep, 0.0), 1.0))
         active.triggerTriRepaint = true
-        dlg:repaint()
+        dlgMain:repaint()
     end
 end
 
@@ -864,7 +875,7 @@ local function onMouseMove(event)
     end -- End is in tri or wheel.
 
     active.triggerTriRepaint = true
-    dlg:repaint()
+    dlgMain:repaint()
 end
 
 ---@param event MouseEvent
@@ -972,7 +983,7 @@ local function onMouseUp(event)
         active.blueFore = bTemp
 
         active.triggerTriRepaint = true
-        dlg:repaint()
+        dlgMain:repaint()
 
         app.fgColor = Color {
             r = math.floor(active.redFore * 255 + 0.5),
@@ -991,11 +1002,13 @@ local function onMouseUp(event)
     end
 end
 
-dlg:canvas {
+dlgMain:canvas {
     id = "triCanvas",
     focus = true,
     width = defaults.wCanvas,
     height = defaults.hCanvas,
+    vexpand = true,
+    hexpand = true,
     onkeydown = onKeyDown,
     onmousedown = onMouseDown,
     onmousemove = onMouseMove,
@@ -1003,88 +1016,13 @@ dlg:canvas {
     onpaint = onPaint,
 }
 
-dlg:newrow { always = false }
+dlgMain:newrow { always = false }
 
-dlg:check {
-    id = "lockTriRot",
-    text = defaults.triCheck,
-    selected = defaults.lockTriRot,
-    focus = false,
-    visible = true,
-    onclick = function()
-        local args <const> = dlg.data
-        local lockTriRot <const> = args.lockTriRot
-            or defaults.lockTriRot --[[@as boolean]]
-        active.lockTriRot = lockTriRot
-        active.triggerTriRepaint = true
-        dlg:repaint()
-    end
-}
-
-dlg:newrow { always = false }
-
-dlg:slider {
-    id = "rLevels",
-    value = defaults.rLevels,
-    min = 1,
-    max = 8,
-    focus = false,
-    onchange = function()
-        local args <const> = dlg.data
-        local rLevels <const> = args.rLevels
-            or defaults.rLevels --[[@as integer]]
-        active.rLevels = rLevels
-        active.rMax = (1 << rLevels) - 1.0
-        updateFromLevels()
-        active.triggerTriRepaint = true
-        active.triggerRingRepaint = true
-        dlg:repaint()
-    end
-}
-
-dlg:slider {
-    id = "gLevels",
-    value = defaults.gLevels,
-    min = 1,
-    max = 8,
-    focus = false,
-    onchange = function()
-        local args <const> = dlg.data
-        local gLevels <const> = args.gLevels
-            or defaults.gLevels --[[@as integer]]
-        active.gLevels = gLevels
-        active.gMax = (1 << gLevels) - 1.0
-        updateFromLevels()
-        active.triggerTriRepaint = true
-        active.triggerRingRepaint = true
-        dlg:repaint()
-    end
-}
-
-dlg:slider {
-    id = "bLevels",
-    value = defaults.bLevels,
-    min = 1,
-    max = 8,
-    focus = false,
-    onchange = function()
-        local args <const> = dlg.data
-        local bLevels <const> = args.bLevels
-            or defaults.bLevels --[[@as integer]]
-        active.bLevels = bLevels
-        active.bMax = (1 << bLevels) - 1.0
-        updateFromLevels()
-        active.triggerTriRepaint = true
-        active.triggerRingRepaint = true
-        dlg:repaint()
-    end
-}
-
-dlg:newrow { always = false }
-
-dlg:button {
+dlgMain:button {
     id = "getForeButton",
     text = defaults.foreKey,
+    focus = false,
+    visible = defaults.showForeButton,
     onclick = function()
         local fgColor <const> = app.fgColor
         local r8fg <const> = fgColor.red
@@ -1093,13 +1031,15 @@ dlg:button {
         local t8fg <const> = fgColor.alpha
         updateFromAse(r8fg, g8fg, b8fg, t8fg, false)
         active.triggerTriRepaint = true
-        dlg:repaint()
+        dlgMain:repaint()
     end
 }
 
-dlg:button {
+dlgMain:button {
     id = "getBackButton",
     text = defaults.backKey,
+    focus = false,
+    visible = defaults.showBackButton,
     onclick = function()
         app.command.SwitchColors()
         local bgColor <const> = app.fgColor
@@ -1110,13 +1050,15 @@ dlg:button {
         app.command.SwitchColors()
         updateFromAse(r8bg, g8bg, b8bg, t8bg, true)
         active.triggerTriRepaint = true
-        dlg:repaint()
+        dlgMain:repaint()
     end
 }
 
-dlg:button {
-    id = "canvasButton",
-    text = defaults.canvasKey,
+dlgMain:button {
+    id = "sampleButton",
+    text = defaults.sampleKey,
+    focus = false,
+    visible = defaults.showSampleButton,
     onclick = function()
         local editor <const> = app.editor
         if not editor then return end
@@ -1191,7 +1133,7 @@ dlg:button {
         if t8 > 0 then
             updateFromAse(r8, g8, b8, t8, false)
             active.triggerTriRepaint = true
-            dlg:repaint()
+            dlgMain:repaint()
             app.fgColor = Color {
                 r = math.floor(active.redFore * 255 + 0.5),
                 g = math.floor(active.greenFore * 255 + 0.5),
@@ -1202,13 +1144,163 @@ dlg:button {
     end
 }
 
-dlg:button {
-    id = "exitButton",
-    text = defaults.closeKey,
+dlgMain:button {
+    id = "optionsButton",
+    text = defaults.optionsKey,
+    focus = false,
+    visible = true,
     onclick = function()
-        dlg:close()
+        dlgOptions:show { autoscrollbars = true, wait = true }
     end
 }
+
+dlgMain:button {
+    id = "exitMainButton",
+    text = defaults.exitKey,
+    focus = false,
+    visible = defaults.showExitButton,
+    onclick = function()
+        dlgMain:close()
+    end
+}
+
+-- region Options Menu
+
+dlgOptions:check {
+    id = "lockTriRot",
+    label = "Triangle:",
+    text = "Lock",
+    selected = defaults.lockTriRot,
+    focus = false
+}
+
+dlgOptions:separator { text = "Bit Depth" }
+
+dlgOptions:slider {
+    id = "rBitDepth",
+    label = "Red:",
+    value = defaults.rBitDepth,
+    min = 1,
+    max = 8,
+    focus = false
+}
+
+dlgOptions:newrow { always = false }
+
+dlgOptions:slider {
+    id = "gBitDepth",
+    label = "Green:",
+    value = defaults.gBitDepth,
+    min = 1,
+    max = 8,
+    focus = false
+}
+
+dlgOptions:newrow { always = false }
+
+dlgOptions:slider {
+    id = "bBitDepth",
+    label = "Blue:",
+    value = defaults.bBitDepth,
+    min = 1,
+    max = 8,
+    focus = false
+}
+
+dlgOptions:separator {}
+
+dlgOptions:check {
+    id = "showForeButton",
+    label = "Buttons:",
+    text = "Fore",
+    selected = defaults.showForeButton,
+    focus = false
+}
+
+dlgOptions:check {
+    id = "showBackButton",
+    text = "Back",
+    selected = defaults.showBackButton,
+    focus = false
+}
+
+dlgOptions:check {
+    id = "showExitButton",
+    text = "X",
+    selected = defaults.showExitButton,
+    focus = false
+}
+
+dlgOptions:newrow { always = false }
+
+dlgOptions:check {
+    id = "showSampleButton",
+    text = "Sample",
+    selected = defaults.showSampleButton,
+    focus = false
+}
+
+dlgOptions:check {
+    id = "showAlphaBar",
+    text = "Alpha",
+    selected = defaults.showAlphaBar,
+    focus = false
+}
+
+dlgOptions:newrow { always = false }
+
+dlgOptions:button {
+    id = "confirmOptionsButton",
+    text = "&OK",
+    focus = false,
+    onclick = function()
+        local args <const> = dlgOptions.data
+
+        local lockTriRot <const> = args.lockTriRot --[[@as boolean]]
+        local showFore <const> = args.showForeButton --[[@as boolean]]
+        local showBack <const> = args.showBackButton --[[@as boolean]]
+        local showExit <const> = args.showExitButton --[[@as boolean]]
+        local showSample <const> = args.showSampleButton --[[@as boolean]]
+        local showAlphaBar <const> = args.showAlphaBar --[[@as boolean]]
+
+        local rBitDepth <const> = args.rBitDepth --[[@as integer]]
+        local gBitDepth <const> = args.gBitDepth --[[@as integer]]
+        local bBitDepth <const> = args.bBitDepth --[[@as integer]]
+
+        active.lockTriRot = lockTriRot
+        active.rBitDepth = rBitDepth
+        active.gBitDepth = gBitDepth
+        active.bBitDepth = bBitDepth
+
+        active.rMax = (1 << rBitDepth) - 1.0
+        active.gMax = (1 << gBitDepth) - 1.0
+        active.bMax = (1 << bBitDepth) - 1.0
+        updateFromBitDepth()
+
+        active.triggerTriRepaint = true
+        active.triggerRingRepaint = true
+
+        dlgMain:repaint()
+
+        dlgMain:modify { id = "getForeButton", visible = showFore }
+        dlgMain:modify { id = "getBackButton", visible = showBack }
+        dlgMain:modify { id = "sampleButton", visible = showSample }
+        dlgMain:modify { id = "exitMainButton", visible = showExit }
+
+        dlgOptions:close()
+    end
+}
+
+dlgOptions:button {
+    id = "exitOptionsButton",
+    text = "&CANCEL",
+    focus = true,
+    onclick = function()
+        dlgOptions:close()
+    end
+}
+
+-- endregion
 
 do
     local fgColor <const> = app.fgColor
@@ -1227,10 +1319,10 @@ do
     app.command.SwitchColors()
     updateFromAse(r8bg, g8bg, b8bg, t8bg, true)
 
-    dlg:repaint()
+    dlgMain:repaint()
 end
 
-dlg:show {
+dlgMain:show {
     autoscrollbars = false,
     wait = false
 }
