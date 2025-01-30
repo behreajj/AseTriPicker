@@ -21,6 +21,7 @@ local defaults <const> = {
     reticleSize = math.max(3, 6 // screenScale),
     reticleStroke = math.max(1, 1 // screenScale),
     swatchSize = math.max(4, 17 // screenScale),
+    swatchMargin = 8,
 
     rLevels = 8,
     gLevels = 8,
@@ -35,9 +36,8 @@ local defaults <const> = {
     green = 0.0,
     blue = 0.0,
 
-    ringInEdge = 0.9,
+    ringInEdge = 0.8875,
     angOffsetRadians = 0.5235987755983,
-    swatchMargin = 8,
 
     textDisplayLimit = 50,
     shiftLevels = 24,
