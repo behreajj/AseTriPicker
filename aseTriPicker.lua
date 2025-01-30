@@ -22,7 +22,7 @@ local defaults <const> = {
     wCanvasMain = math.max(16, 200 // screenScale),
     hCanvasMain = math.max(16, 200 // screenScale),
     wCanvasAlpha = math.max(16, 200 // screenScale),
-    hCanvasAlpha = math.max(6, 12 // screenScale),
+    hCanvasAlpha = math.max(8, 12 // screenScale),
 
     reticleSize = math.max(3, 6 // screenScale),
     reticleStroke = math.max(1, 1 // screenScale),
@@ -670,8 +670,9 @@ end
 ---@param r01 number
 ---@param g01 number
 ---@param b01 number
+---@param t01 number
 ---@param isBackActive boolean
-local function updateQuantizedRgb(r01, g01, b01, isBackActive)
+local function updateQuantizedRgb(r01, g01, b01, t01, isBackActive)
     local rMax <const> = active.rMax
     local gMax <const> = active.gMax
     local bMax <const> = active.bMax
@@ -696,13 +697,14 @@ local function updateQuantizedRgb(r01, g01, b01, isBackActive)
     local r8 <const> = math.floor(rq * 255.0 + 0.5)
     local g8 <const> = math.floor(gq * 255.0 + 0.5)
     local b8 <const> = math.floor(bq * 255.0 + 0.5)
+    local t8 <const> = math.floor(t01 * 255.0 + 0.5)
 
     if isBackActive then
         app.command.SwitchColors()
-        app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
+        app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
         app.command.SwitchColors()
     else
-        app.fgColor = Color { r = r8, g = g8, b = b8, a = 255 }
+        app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
     end
 end
 
@@ -712,7 +714,10 @@ end
 ---@param isBackActive boolean
 local function updateQuantizedHsv(ho, so, vo, isBackActive)
     local r01 <const>, g01 <const>, b01 <const> = hsvToRgb(ho, so, vo)
-    updateQuantizedRgb(r01, g01, b01, isBackActive)
+    local t01 <const> = isBackActive
+        and active.alphaBack
+        or active.alphaFore
+    updateQuantizedRgb(r01, g01, b01, t01, isBackActive)
 end
 
 ---@param hue number
@@ -761,12 +766,14 @@ local function updateFromBitDepth()
     local r01Fore <const> = active.redFore
     local g01Fore <const> = active.greenFore
     local b01Fore <const> = active.blueFore
-    updateQuantizedRgb(r01Fore, g01Fore, b01Fore, false)
+    local t01Fore <const> = active.alphaFore
+    updateQuantizedRgb(r01Fore, g01Fore, b01Fore, t01Fore, false)
 
     local r01Back <const> = active.redBack
     local g01Back <const> = active.greenBack
     local b01Back <const> = active.blueBack
-    updateQuantizedRgb(r01Back, g01Back, b01Back, true)
+    local t01Back <const> = active.alphaBack
+    updateQuantizedRgb(r01Back, g01Back, b01Back, t01Back, true)
 end
 
 ---@param r8 integer
@@ -869,6 +876,38 @@ local function onKeyDownMain(event)
         active.triggerTriRepaint = true
         dlgMain:repaint()
     end
+end
+
+---@param event MouseEvent
+local function onMouseMoveAlpha(event)
+    if event.button == MouseButton.NONE then return end
+
+    local wCanvas <const> = active.wCanvasAlpha
+    local hCanvas <const> = active.hCanvasAlpha
+    if wCanvas <= 1 or hCanvas <= 1 then return end
+
+    local xCanvas <const> = math.min(math.max(event.x, 0), wCanvas - 1)
+    local xNrm <const> = event.ctrlKey
+        and 1.0
+        or xCanvas / (wCanvas - 1.0)
+
+    local useBack <const> = active.useBack
+    active[useBack and "alphaBack" or "alphaFore"] = xNrm
+
+    local r01 <const> = useBack
+        and active.redBack
+        or active.redFore
+    local g01 <const> = useBack
+        and active.greenBack
+        or active.greenFore
+    local b01 <const> = useBack
+        and active.blueBack
+        or active.blueFore
+    local t01 <const> = useBack
+        and active.alphaBack
+        or active.alphaFore
+    updateQuantizedRgb(r01, g01, b01, t01, useBack)
+    dlgMain:repaint()
 end
 
 ---@param event MouseEvent
@@ -986,10 +1025,15 @@ local function onMouseMoveMain(event)
         end
         active[isBackActive and "valBack" or "valFore"] = vo
 
-        updateQuantizedRgb(r01, g01, b01, isBackActive)
+        local t01 <const> = isBackActive
+            and active.alphaBack
+            or active.alphaFore
+
+        updateQuantizedRgb(r01, g01, b01, t01, isBackActive)
     end -- End is in tri or wheel.
 
     active.triggerTriRepaint = true
+    active.triggerAlphaRepaint = true
     dlgMain:repaint()
 end
 
@@ -1098,20 +1142,21 @@ local function onMouseUpMain(event)
         active.blueFore = bTemp
 
         active.triggerTriRepaint = true
+        active.triggerAlphaRepaint = true
         dlgMain:repaint()
 
         app.fgColor = Color {
             r = math.floor(active.redFore * 255 + 0.5),
             g = math.floor(active.greenFore * 255 + 0.5),
             b = math.floor(active.blueFore * 255 + 0.5),
-            a = 255
+            a = math.floor(active.alphaFore * 255 + 0.5)
         }
         app.command.SwitchColors()
         app.fgColor = Color {
             r = math.floor(active.redBack * 255 + 0.5),
             g = math.floor(active.greenBack * 255 + 0.5),
             b = math.floor(active.blueBack * 255 + 0.5),
-            a = 255
+            a = math.floor(active.alphaBack * 255 + 0.5)
         }
         app.command.SwitchColors()
     end
@@ -1141,8 +1186,8 @@ dlgMain:canvas {
     visible = defaults.showAlphaBar,
     width = defaults.wCanvas,
     height = defaults.hCanvasAlpha,
-    -- onmousedown = onMouseMoveAlpha, -- TODO: Implement.
-    -- onmousemove = onMouseMoveAlpha, -- TODO: Implement.
+    onmousedown = onMouseMoveAlpha,
+    onmousemove = onMouseMoveAlpha,
     onpaint = onPaintAlpha,
     hexpand = true,
     vexpand = false,
@@ -1273,7 +1318,7 @@ dlgMain:button {
                 r = math.floor(active.redFore * 255 + 0.5),
                 g = math.floor(active.greenFore * 255 + 0.5),
                 b = math.floor(active.blueFore * 255 + 0.5),
-                a = 255
+                a = math.floor(active.alphaFore * 255 + 0.5),
             }
         end
     end
