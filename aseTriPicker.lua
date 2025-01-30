@@ -637,6 +637,8 @@ local function onPaintMain(event)
         local blueActive <const> = isBackActive
             and blueBack
             or blueFore
+
+        local showAlphaBar <const> = active.showAlphaBar
         local alphaActive <const> = isBackActive
             and alphaBack
             or alphaFore
@@ -647,8 +649,10 @@ local function onPaintMain(event)
             "G: %.2f%%", greenActive * 100), 2, 2 + yIncr * 5)
         ctx:fillText(string.format(
             "B: %.2f%%", blueActive * 100), 2, 2 + yIncr * 6)
-        ctx:fillText(string.format(
-            "A: %.2f%%", alphaActive * 100), 2, 2 + yIncr * 8)
+        if showAlphaBar then
+            ctx:fillText(string.format(
+                "A: %.2f%%", alphaActive * 100), 2, 2 + yIncr * 8)
+        end
 
         local rBitDepth <const> = active.rBitDepth
         local gBitDepth <const> = active.gBitDepth
@@ -663,8 +667,9 @@ local function onPaintMain(event)
             | floor(greenActive * gMax + 0.5) << gShift
             | floor(blueActive * bMax + 0.5) << bShift
 
+        local hexVertOffset<const> = showAlphaBar and 10 or 8
         ctx:fillText(string.format("#%0" .. hexPad .. "X", hex),
-            2, 2 + yIncr * 10)
+            2, 2 + yIncr * hexVertOffset)
     end
 end
 
