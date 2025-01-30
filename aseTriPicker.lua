@@ -37,6 +37,7 @@ local defaults <const> = {
 
     ringInEdge = 0.9,
     angOffsetRadians = 0.5235987755983,
+    swatchMargin = 8,
 
     textDisplayLimit = 50,
     shiftLevels = 24,
@@ -447,7 +448,11 @@ local function onPaint(event)
     end
 
     local swatchSize <const> = defaults.swatchSize
+    local swatchMargin <const> = defaults.swatchMargin
+
     local offset <const> = swatchSize // 2
+    local xSwatch <const> = wCanvas - swatchSize - swatchMargin
+    local ySwatch <const> = hCanvas - swatchSize - swatchMargin
 
     -- Draw background color swatch.
     local r8Back <const> = math.floor(redBack * 255 + 0.5)
@@ -456,7 +461,7 @@ local function onPaint(event)
 
     ctx.color = Color { r = r8Back, g = g8Back, b = b8Back, a = 255 }
     ctx:fillRect(Rectangle(
-        offset, hCanvas - swatchSize - 1,
+        xSwatch, ySwatch,
         swatchSize, swatchSize))
 
     -- Draw foreground color swatch.
@@ -466,7 +471,7 @@ local function onPaint(event)
 
     ctx.color = Color { r = r8Fore, g = g8Fore, b = b8Fore, a = 255 }
     ctx:fillRect(Rectangle(
-        0, hCanvas - swatchSize - 1 - offset,
+        xSwatch - offset, ySwatch - offset,
         swatchSize, swatchSize))
 
     -- If dialog is wide enough, draw diagnostic text.
@@ -912,11 +917,19 @@ local function onMouseUp(event)
     active.isBackActive = false
 
     local swatchSize <const> = defaults.swatchSize
-    local offset <const> = swatchSize // 2
+    local swatchMargin <const> = defaults.swatchMargin
+    local wCanvas <const> = active.wCanvas
     local hCanvas <const> = active.hCanvas
-    if xMouseUp >= 0 and xMouseUp < offset + swatchSize
-        and yMouseUp >= hCanvas - swatchSize - 1 - offset
-        and yMouseUp < hCanvas then
+
+    local offset <const> = swatchSize // 2
+    local xSwatch <const> = wCanvas - swatchSize - swatchMargin
+    local ySwatch <const> = hCanvas - swatchSize - swatchMargin
+    local offSizeSum <const> = offset + swatchSize - swatchMargin
+
+    if xMouseUp >= xSwatch - offset
+        and xMouseUp < xSwatch + offSizeSum
+        and yMouseUp >= ySwatch - offset
+        and yMouseUp < ySwatch + offSizeSum then
         local hTemp <const> = active.hueBack
         local sTemp <const> = active.satBack
         local vTemp <const> = active.valBack
