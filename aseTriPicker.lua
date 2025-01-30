@@ -95,6 +95,7 @@ local active <const> = {
     triggerTriRepaint = true,
     triBytes = "",
 
+    showAlphaBar = defaults.showAlphaBar,
     wCanvasAlpha = defaults.wCanvasAlpha,
     hCanvasAlpha = defaults.hCanvasAlpha,
     triggerAlphaRepaint = true,
@@ -694,10 +695,11 @@ local function updateQuantizedRgb(r01, g01, b01, t01, isBackActive)
     end
     active[isBackActive and "vqBack" or "vqFore"] = vq
 
+    local showAlphaBar <const> = active.showAlphaBar
     local r8 <const> = math.floor(rq * 255.0 + 0.5)
     local g8 <const> = math.floor(gq * 255.0 + 0.5)
     local b8 <const> = math.floor(bq * 255.0 + 0.5)
-    local t8 <const> = math.floor(t01 * 255.0 + 0.5)
+    local t8 <const> = showAlphaBar and math.floor(t01 * 255.0 + 0.5) or 255
 
     if isBackActive then
         app.command.SwitchColors()
@@ -1145,18 +1147,26 @@ local function onMouseUpMain(event)
         active.triggerAlphaRepaint = true
         dlgMain:repaint()
 
+        local showAlphaBar <const> = active.showAlphaBar
+        local fgt8 = 255
+        local bgt8 = 255
+        if showAlphaBar then
+            fgt8 = math.floor(active.alphaFore * 255 + 0.5)
+            bgt8 = math.floor(active.alphaBack * 255 + 0.5)
+        end
+
         app.fgColor = Color {
             r = math.floor(active.redFore * 255 + 0.5),
             g = math.floor(active.greenFore * 255 + 0.5),
             b = math.floor(active.blueFore * 255 + 0.5),
-            a = math.floor(active.alphaFore * 255 + 0.5)
+            a = fgt8
         }
         app.command.SwitchColors()
         app.fgColor = Color {
             r = math.floor(active.redBack * 255 + 0.5),
             g = math.floor(active.greenBack * 255 + 0.5),
             b = math.floor(active.blueBack * 255 + 0.5),
-            a = math.floor(active.alphaBack * 255 + 0.5)
+            a = bgt8
         }
         app.command.SwitchColors()
     end
@@ -1314,11 +1324,16 @@ dlgMain:button {
             active.triggerTriRepaint = true
             active.triggerAlphaRepaint = true
             dlgMain:repaint()
+
+            local showAlphaBar <const> = active.showAlphaBar
+            local fgt8 <const> = showAlphaBar
+                and math.floor(active.alphaFore * 255 + 0.5)
+                or 255
             app.fgColor = Color {
                 r = math.floor(active.redFore * 255 + 0.5),
                 g = math.floor(active.greenFore * 255 + 0.5),
                 b = math.floor(active.blueFore * 255 + 0.5),
-                a = math.floor(active.alphaFore * 255 + 0.5),
+                a = fgt8,
             }
         end
     end
@@ -1465,6 +1480,8 @@ dlgOptions:button {
 
         active.angOffsetRadians = (-math.rad(degreesOffset)) % tau
         active.lockTriRot = lockTriRot
+        active.showAlphaBar = showAlphaBar
+
         active.rBitDepth = rBitDepth
         active.gBitDepth = gBitDepth
         active.bBitDepth = bBitDepth
