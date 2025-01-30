@@ -224,22 +224,25 @@ local function onPaintAlpha(event)
     active.hCanvasAlpha = hCanvas
 
     local useBack <const> = active.useBack
+    local redActive <const> = useBack
+        and active.redBack
+        or active.redFore
+    local greenActive <const> = useBack
+        and active.greenBack
+        or active.greenFore
+    local blueActive <const> = useBack
+        and active.blueBack
+        or active.blueFore
+    local alphaActive <const> = useBack
+        and active.alphaBack
+        or active.alphaFore
+
     if needsRepaint then
         ---@type string[]
         local byteStrs <const> = {}
 
         local strpack <const> = string.pack
         local floor <const> = math.floor
-
-        local redActive <const> = useBack
-            and active.redBack
-            or active.redFore
-        local greenActive <const> = useBack
-            and active.greenBack
-            or active.greenFore
-        local blueActive <const> = useBack
-            and active.blueBack
-            or active.blueFore
 
         local wCheck <const> = defaults.wCheck
         local hCheck <const> = defaults.hCheck
@@ -290,15 +293,18 @@ local function onPaintAlpha(event)
     local drawRect <const> = Rectangle(0, 0, wCanvas, hCanvas)
     ctx:drawImage(img, drawRect, drawRect)
 
-    local alphaActive <const> = useBack
-        and active.alphaBack
-        or active.alphaFore
     local xReticle <const> = math.floor(alphaActive * (wCanvas - 1.0) + 0.5)
     local yReticle <const> = hCanvas // 2
 
     local reticleSize <const> = defaults.reticleSize
     local reticleHalf <const> = reticleSize // 2
-    local reticleColor <const> = Color(255, 255, 255, 255)
+
+    local relLum <const> = (0.30 * redActive
+        + 0.59 * greenActive
+        + 0.11 * blueActive)
+    local reticleColor <const> = relLum < 0.5 and
+        Color(255, 255, 255, 255)
+        or Color(0, 0, 0, 255)
     ctx.color = reticleColor
     ctx.strokeWidth = defaults.reticleStroke
     ctx:strokeRect(Rectangle(
@@ -667,7 +673,7 @@ local function onPaintMain(event)
             | floor(greenActive * gMax + 0.5) << gShift
             | floor(blueActive * bMax + 0.5) << bShift
 
-        local hexVertOffset<const> = showAlphaBar and 10 or 8
+        local hexVertOffset <const> = showAlphaBar and 10 or 8
         ctx:fillText(string.format("#%0" .. hexPad .. "X", hex),
             2, 2 + yIncr * hexVertOffset)
     end
