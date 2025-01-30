@@ -21,7 +21,7 @@ local defaults <const> = {
     reticleSize = math.max(3, 6 // screenScale),
     reticleStroke = math.max(1, 1 // screenScale),
     swatchSize = math.max(4, 17 // screenScale),
-    swatchMargin = 8,
+    swatchMargin = math.max(4, 8 // screenScale),
 
     rLevels = 8,
     gLevels = 8,
