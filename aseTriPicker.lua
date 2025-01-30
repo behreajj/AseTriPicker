@@ -14,10 +14,16 @@ if app.preferences then
 end
 
 local defaults <const> = {
+    -- TODO: Make a separate child dialog for hex input.
+    -- TODO: Allow locked triangle to have custom angle offset?
+
     lockTriRot = false,
 
-    wCanvas = math.max(16, 200 // screenScale),
-    hCanvas = math.max(16, 200 // screenScale),
+    wCanvasMain = math.max(16, 200 // screenScale),
+    hCanvasMain = math.max(16, 200 // screenScale),
+    wCanvasAlpha = math.max(16, 200 // screenScale),
+    hCanvasAlpha = math.max(6, 12 // screenScale),
+
     reticleSize = math.max(3, 6 // screenScale),
     reticleStroke = math.max(1, 1 // screenScale),
     swatchSize = math.max(4, 17 // screenScale),
@@ -71,13 +77,28 @@ local defaults <const> = {
     satDecrKey = "ArrowDown",
     valIncrKey = "ArrowUp",
     valDecrKey = "ArrowDown",
+
+    aCheck = 0.5, -- 0x80 / 0xff
+    bCheck = 0.8, -- 0xca / 0xff
+    wCheck = math.max(1, 6 // screenScale),
+    hCheck = math.max(1, 6 // screenScale),
 }
 
 local active <const> = {
     lockTriRot = defaults.lockTriRot,
+    angOffsetRadians = 0.5235987755983,
 
-    wCanvas = defaults.wCanvas,
-    hCanvas = defaults.hCanvas,
+    wCanvasMain = defaults.wCanvasMain,
+    hCanvasMain = defaults.hCanvasMain,
+    triggerRingRepaint = true,
+    ringBytes = "",
+    triggerTriRepaint = true,
+    triBytes = "",
+
+    wCanvasAlpha = defaults.wCanvasAlpha,
+    hCanvasAlpha = defaults.hCanvasAlpha,
+    triggerAlphaRepaint = true,
+    byteStrAlpha = "",
 
     rBitDepth = 8,
     gBitDepth = 8,
@@ -118,12 +139,6 @@ local active <const> = {
     isBackActive = false,
     mouseDownRing = false,
     mouseDownTri = false,
-
-    triggerRingRepaint = true,
-    ringBytes = "",
-
-    triggerTriRepaint = true,
-    triBytes = ""
 }
 
 ---@param h number
@@ -191,7 +206,7 @@ local function rgbToHsv(r, g, b)
 end
 
 ---@param event { context: GraphicsContext }
-local function onPaint(event)
+local function onPaintAlpha(event)
     local ctx <const> = event.context
     ctx.antialias = false
     ctx.blendMode = BlendMode.SRC
@@ -200,17 +215,117 @@ local function onPaint(event)
     local hCanvas <const> = ctx.height
     if wCanvas <= 1 or hCanvas <= 1 then return end
 
-    local needsRepaintResize <const> = active.wCanvas ~= wCanvas
-        or active.hCanvas ~= hCanvas
+    local needsRepaint <const> = active.triggerAlphaRepaint
+        or active.wCanvasAlpha ~= wCanvas
+        or active.hCanvasAlpha ~= hCanvas
+
+    active.wCanvasAlpha = wCanvas
+    active.hCanvasAlpha = hCanvas
+
+    local useBack <const> = active.useBack
+    if needsRepaint then
+        ---@type string[]
+        local byteStrs <const> = {}
+
+        local strpack <const> = string.pack
+        local floor <const> = math.floor
+
+        local redActive <const> = useBack
+            and active.redBack
+            or active.redFore
+        local greenActive <const> = useBack
+            and active.greenBack
+            or active.greenFore
+        local blueActive <const> = useBack
+            and active.blueBack
+            or active.blueFore
+
+        local wCheck <const> = defaults.wCheck
+        local hCheck <const> = defaults.hCheck
+        local aCheck <const> = defaults.aCheck
+        local bCheck <const> = defaults.bCheck
+        local xToFac <const> = 1.0 / (wCanvas - 1.0)
+
+        local lenCanvas <const> = wCanvas * hCanvas
+        local i = 0
+        while i < lenCanvas do
+            local y <const> = i // wCanvas
+            local x <const> = i % wCanvas
+            local t <const> = x * xToFac
+
+            local cCheck = bCheck
+            if (((x // wCheck) + (y // hCheck)) % 2) ~= 1 then
+                cCheck = aCheck
+            end
+
+            local ucCheck <const> = (1.0 - t) * cCheck
+            local rMix <const> = ucCheck + t * redActive
+            local gMix <const> = ucCheck + t * greenActive
+            local bMix <const> = ucCheck + t * blueActive
+
+            local r8 <const> = floor(rMix * 255 + 0.5)
+            local g8 <const> = floor(gMix * 255 + 0.5)
+            local b8 <const> = floor(bMix * 255 + 0.5)
+
+            local byteStr <const> = strpack("B B B B", r8, g8, b8, 255)
+
+            i = i + 1
+            byteStrs[i] = byteStr
+        end -- End image loop.
+
+        active.byteStrAlpha = table.concat(byteStrs)
+        active.triggerAlphaRepaint = false
+    end -- End needs repaint.
+
+    -- Draw alpha canvas.
+    local imgSpec <const> = ImageSpec {
+        width = wCanvas,
+        height = hCanvas,
+        transparentColor = 0,
+        colorMode = ColorMode.RGB
+    }
+    local img <const> = Image(imgSpec)
+    img.bytes = active.byteStrAlpha
+    local drawRect <const> = Rectangle(0, 0, wCanvas, hCanvas)
+    ctx:drawImage(img, drawRect, drawRect)
+
+    local alphaActive <const> = useBack
+        and active.alphaBack
+        or active.alphaFore
+    local xReticle <const> = math.floor(alphaActive * (wCanvas - 1.0) + 0.5)
+    local yReticle <const> = hCanvas // 2
+
+    local reticleSize <const> = defaults.reticleSize
+    local reticleHalf <const> = reticleSize // 2
+    local reticleColor <const> = Color(255, 255, 255, 255)
+    ctx.color = reticleColor
+    ctx.strokeWidth = defaults.reticleStroke
+    ctx:strokeRect(Rectangle(
+        xReticle - reticleHalf, yReticle - reticleHalf,
+        reticleSize, reticleSize))
+end
+
+---@param event { context: GraphicsContext }
+local function onPaintMain(event)
+    local ctx <const> = event.context
+    ctx.antialias = false
+    ctx.blendMode = BlendMode.SRC
+
+    local wCanvas <const> = ctx.width
+    local hCanvas <const> = ctx.height
+    if wCanvas <= 1 or hCanvas <= 1 then return end
+
+    local needsRepaintResize <const> = active.wCanvasMain ~= wCanvas
+        or active.hCanvasMain ~= hCanvas
     local needsRingRepaint <const> = active.triggerRingRepaint
         or needsRepaintResize
     local needsTriRepaint <const> = active.triggerTriRepaint
         or needsRepaintResize
 
-    active.wCanvas = wCanvas
-    active.hCanvas = hCanvas
+    active.wCanvasMain = wCanvas
+    active.hCanvasMain = hCanvas
 
-    local angOffsetRadians <const> = defaults.angOffsetRadians
+    local angOffsetRadians <const> = active.angOffsetRadians
     local lockTriRot <const> = active.lockTriRot
     local ringInEdge <const> = defaults.ringInEdge
     local sqRie <const> = ringInEdge * ringInEdge
@@ -704,7 +819,7 @@ local dlgOptions <const> = Dialog {
 }
 
 ---@param event KeyEvent
-local function onKeyDown(event)
+local function onKeyDownMain(event)
     local isBackActive <const> = active.isBackActive
     local hueActive <const> = isBackActive
         and (active.hueBack or defaults.hue)
@@ -757,7 +872,7 @@ local function onKeyDown(event)
 end
 
 ---@param event MouseEvent
-local function onMouseMove(event)
+local function onMouseMoveMain(event)
     if event.button == MouseButton.NONE then return end
 
     local isRing <const> = active.mouseDownRing
@@ -767,8 +882,8 @@ local function onMouseMove(event)
     local xMouseMove <const> = event.x
     local yMouseMove <const> = event.y
 
-    local wCanvas <const> = active.wCanvas
-    local hCanvas <const> = active.hCanvas
+    local wCanvas <const> = active.wCanvasMain
+    local hCanvas <const> = active.hCanvasMain
     local xCenter <const> = wCanvas * 0.5
     local yCenter <const> = hCanvas * 0.5
     local shortEdge <const> = math.min(wCanvas, hCanvas)
@@ -782,7 +897,7 @@ local function onMouseMove(event)
     local yNorm <const> = yDelta * rCanvasInv
 
     if isRing then
-        local angOffsetRadians <const> = defaults.angOffsetRadians
+        local angOffsetRadians <const> = active.angOffsetRadians
         local angSigned <const> = math.atan(yNorm, xNorm)
         local angRotated <const> = angSigned + angOffsetRadians
         local hwSigned = angRotated * oneTau
@@ -795,7 +910,7 @@ local function onMouseMove(event)
         updateFromHue(hueWheel)
     elseif isTri then
         local ringInEdge <const> = defaults.ringInEdge
-        local angOffsetRadians <const> = defaults.angOffsetRadians
+        local angOffsetRadians <const> = active.angOffsetRadians
 
         local isBackActive <const> = active.isBackActive
         local hueActive <const> = isBackActive
@@ -879,15 +994,15 @@ local function onMouseMove(event)
 end
 
 ---@param event MouseEvent
-local function onMouseDown(event)
+local function onMouseDownMain(event)
     local xMouseDown <const> = event.x
     local yMouseDown <const> = event.y
 
     local ringInEdge <const> = defaults.ringInEdge
     local sqRie <const> = ringInEdge * ringInEdge
 
-    local wCanvas <const> = active.wCanvas
-    local hCanvas <const> = active.hCanvas
+    local wCanvas <const> = active.wCanvasMain
+    local hCanvas <const> = active.hCanvasMain
     local xCenter <const> = wCanvas * 0.5
     local yCenter <const> = hCanvas * 0.5
     local shortEdge <const> = math.min(wCanvas, hCanvas)
@@ -915,11 +1030,11 @@ local function onMouseDown(event)
         end
     end
 
-    onMouseMove(event)
+    onMouseMoveMain(event)
 end
 
 ---@param event MouseEvent
-local function onMouseUp(event)
+local function onMouseUpMain(event)
     local xMouseUp <const> = event.x
     local yMouseUp <const> = event.y
 
@@ -929,8 +1044,8 @@ local function onMouseUp(event)
 
     local swatchSize <const> = defaults.swatchSize
     local swatchMargin <const> = defaults.swatchMargin
-    local wCanvas <const> = active.wCanvas
-    local hCanvas <const> = active.hCanvas
+    local wCanvas <const> = active.wCanvasMain
+    local hCanvas <const> = active.hCanvasMain
 
     local offset <const> = swatchSize // 2
     local xSwatch <const> = wCanvas - swatchSize - swatchMargin
@@ -1002,18 +1117,35 @@ local function onMouseUp(event)
     end
 end
 
+-- region Main Dialog
+
 dlgMain:canvas {
     id = "triCanvas",
     focus = true,
-    width = defaults.wCanvas,
-    height = defaults.hCanvas,
+    width = defaults.wCanvasMain,
+    height = defaults.hCanvasMain,
+    onkeydown = onKeyDownMain,
+    onmousedown = onMouseDownMain,
+    onmousemove = onMouseMoveMain,
+    onmouseup = onMouseUpMain,
+    onpaint = onPaintMain,
     vexpand = true,
     hexpand = true,
-    onkeydown = onKeyDown,
-    onmousedown = onMouseDown,
-    onmousemove = onMouseMove,
-    onmouseup = onMouseUp,
-    onpaint = onPaint,
+}
+
+dlgMain:newrow { always = false }
+
+dlgMain:canvas {
+    id = "alphaCanvas",
+    focus = false,
+    visible = defaults.showAlphaBar,
+    width = defaults.wCanvas,
+    height = defaults.hCanvasAlpha,
+    -- onmousedown = onMouseMoveAlpha, -- TODO: Implement.
+    -- onmousemove = onMouseMoveAlpha, -- TODO: Implement.
+    onpaint = onPaintAlpha,
+    hexpand = true,
+    vexpand = false,
 }
 
 dlgMain:newrow { always = false }
@@ -1031,6 +1163,7 @@ dlgMain:button {
         local t8fg <const> = fgColor.alpha
         updateFromAse(r8fg, g8fg, b8fg, t8fg, false)
         active.triggerTriRepaint = true
+        active.triggerAlphaRepaint = true
         dlgMain:repaint()
     end
 }
@@ -1050,6 +1183,7 @@ dlgMain:button {
         app.command.SwitchColors()
         updateFromAse(r8bg, g8bg, b8bg, t8bg, true)
         active.triggerTriRepaint = true
+        active.triggerAlphaRepaint = true
         dlgMain:repaint()
     end
 }
@@ -1133,6 +1267,7 @@ dlgMain:button {
         if t8 > 0 then
             updateFromAse(r8, g8, b8, t8, false)
             active.triggerTriRepaint = true
+            active.triggerAlphaRepaint = true
             dlgMain:repaint()
             app.fgColor = Color {
                 r = math.floor(active.redFore * 255 + 0.5),
@@ -1164,7 +1299,21 @@ dlgMain:button {
     end
 }
 
+-- endregion
+
 -- region Options Menu
+
+dlgOptions:slider {
+    id = "degreesOffset",
+    label = "Ring:",
+    value = math.floor(-math.deg(
+        defaults.angOffsetRadians) % 360 + 0.5),
+    min = 0,
+    max = 360,
+    focus = false,
+}
+
+dlgOptions:newrow { always = false }
 
 dlgOptions:check {
     id = "lockTriRot",
@@ -1207,7 +1356,7 @@ dlgOptions:slider {
     focus = false
 }
 
-dlgOptions:separator {}
+dlgOptions:separator { text = "Display" }
 
 dlgOptions:check {
     id = "showForeButton",
@@ -1242,6 +1391,7 @@ dlgOptions:check {
 
 dlgOptions:check {
     id = "showAlphaBar",
+    label = "Bars:",
     text = "Alpha",
     selected = defaults.showAlphaBar,
     focus = false
@@ -1256,6 +1406,7 @@ dlgOptions:button {
     onclick = function()
         local args <const> = dlgOptions.data
 
+        local degreesOffset <const> = args.degreesOffset --[[@as integer]]
         local lockTriRot <const> = args.lockTriRot --[[@as boolean]]
         local showFore <const> = args.showForeButton --[[@as boolean]]
         local showBack <const> = args.showBackButton --[[@as boolean]]
@@ -1267,6 +1418,7 @@ dlgOptions:button {
         local gBitDepth <const> = args.gBitDepth --[[@as integer]]
         local bBitDepth <const> = args.bBitDepth --[[@as integer]]
 
+        active.angOffsetRadians = (-math.rad(degreesOffset)) % tau
         active.lockTriRot = lockTriRot
         active.rBitDepth = rBitDepth
         active.gBitDepth = gBitDepth
@@ -1279,6 +1431,7 @@ dlgOptions:button {
 
         active.triggerTriRepaint = true
         active.triggerRingRepaint = true
+        active.triggerAlphaRepaint = true
 
         dlgMain:repaint()
 
@@ -1286,6 +1439,7 @@ dlgOptions:button {
         dlgMain:modify { id = "getBackButton", visible = showBack }
         dlgMain:modify { id = "sampleButton", visible = showSample }
         dlgMain:modify { id = "exitMainButton", visible = showExit }
+        dlgMain:modify { id = "alphaCanvas", visible = showAlphaBar }
 
         dlgOptions:close()
     end
