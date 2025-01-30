@@ -14,7 +14,6 @@ if app.preferences then
 end
 
 local defaults <const> = {
-    -- TODO: Make a separate child dialog for hex input.
     -- TODO: Allow locked triangle to have custom angle offset?
 
     lockTriRot = false,
@@ -33,6 +32,7 @@ local defaults <const> = {
     showForeButton = true,
     showBackButton = true,
     showSampleButton = false,
+    showHexButton = false,
     showExitButton = true,
 
     rBitDepth = 8,
@@ -47,6 +47,7 @@ local defaults <const> = {
     red = 1.0,
     green = 0.0,
     blue = 0.0,
+    hexCode = "000000",
 
     ringInEdge = 0.8875,
     angOffsetRadians = 0.5235987755983,
@@ -57,6 +58,7 @@ local defaults <const> = {
     foreKey = "&FORE",
     backKey = "&BACK",
     sampleKey = "S&AMPLE",
+    hexKey = "&HEX",
     optionsKey = "&+",
     exitKey = "&X",
 
@@ -343,23 +345,23 @@ local function onPaintMain(event)
     local rCanvas <const> = (shortEdge - 1.0) * 0.5
     local rCanvasInv <const> = rCanvas ~= 0.0 and 1.0 / rCanvas or 0.0
 
-    local rMax <const> = active.rMax or 1.0
-    local gMax <const> = active.gMax or 1.0
-    local bMax <const> = active.bMax or 1.0
+    local rMax <const> = active.rMax
+    local gMax <const> = active.gMax
+    local bMax <const> = active.bMax
 
     local rRatio <const> = 255.0 / rMax
     local gRatio <const> = 255.0 / gMax
     local bRatio <const> = 255.0 / bMax
 
-    local redBack <const> = active.redBack or 0.0
-    local greenBack <const> = active.greenBack or 0.0
-    local blueBack <const> = active.blueBack or 0.0
-    local alphaBack <const> = active.alphaBack or 1.0
+    local redBack <const> = active.redBack
+    local greenBack <const> = active.greenBack
+    local blueBack <const> = active.blueBack
+    local alphaBack <const> = active.alphaBack
 
-    local redFore <const> = active.redFore or 0.0
-    local greenFore <const> = active.greenFore or 0.0
-    local blueFore <const> = active.blueFore or 0.0
-    local alphaFore <const> = active.alphaFore or 1.0
+    local redFore <const> = active.redFore
+    local greenFore <const> = active.greenFore
+    local blueFore <const> = active.blueFore
+    local alphaFore <const> = active.alphaFore
 
     local isBackActive <const> = active.isBackActive
     local hueActive = isBackActive
@@ -835,6 +837,11 @@ local dlgMain <const> = Dialog { title = "Triangle Color Picker" }
 
 local dlgOptions <const> = Dialog {
     title = "Triangle Options",
+    parent = dlgMain
+}
+
+local dlgHex <const> = Dialog {
+    title = "Triangle Hexadecimal",
     parent = dlgMain
 }
 
@@ -1351,6 +1358,46 @@ dlgMain:button {
 }
 
 dlgMain:button {
+    id = "hexButton",
+    text = defaults.hexKey,
+    focus = false,
+    visible = defaults.showHexButton,
+    onclick = function()
+        -- Whether the back is active is a hold down
+        -- on mouse press, so it doesn't work well
+        -- in this case.
+        local redFore <const> = active.redFore
+        local greenFore <const> = active.greenFore
+        local blueFore <const> = active.blueFore
+
+        local redActive <const> = redFore
+        local greenActive <const> = greenFore
+        local blueActive <const> = blueFore
+
+        local rBitDepth <const> = active.rBitDepth
+        local gBitDepth <const> = active.gBitDepth
+        local bBitDepth <const> = active.bBitDepth
+
+        local rMax <const> = active.rMax
+        local gMax <const> = active.gMax
+        local bMax <const> = active.bMax
+
+        local bShift <const> = 0
+        local gShift <const> = bShift + bBitDepth
+        local rShift <const> = gShift + gBitDepth
+        local hexPad <const> = math.ceil((rShift + rBitDepth) * 0.25)
+
+        local hex <const> = math.floor(redActive * rMax + 0.5) << rShift
+            | math.floor(greenActive * gMax + 0.5) << gShift
+            | math.floor(blueActive * bMax + 0.5) << bShift
+
+        local str = string.format("%0" .. hexPad .. "X", hex)
+        dlgHex:modify { id = "hexCode", text = str }
+        dlgHex:show { autoscrollbars = false, wait = true }
+    end
+}
+
+dlgMain:button {
     id = "optionsButton",
     text = defaults.optionsKey,
     focus = false,
@@ -1367,6 +1414,37 @@ dlgMain:button {
     visible = defaults.showExitButton,
     onclick = function()
         dlgMain:close()
+    end
+}
+
+-- endregion
+
+-- region Hex Menu
+
+dlgHex:entry {
+    id = "hexCode",
+    label = "#:",
+    text = defaults.hexCode,
+    focus = true
+}
+
+dlgHex:newrow { always = false }
+
+dlgHex:button {
+    id = "confirmHexButton",
+    text = "&OK",
+    focus = false,
+    onclick = function()
+        -- TODO: Implement
+    end
+}
+
+dlgHex:button {
+    id = "exitHexButton",
+    text = "&CANCEL",
+    focus = false,
+    onclick = function()
+        dlgHex:close()
     end
 }
 
@@ -1461,6 +1539,13 @@ dlgOptions:check {
 }
 
 dlgOptions:check {
+    id = "showHexButton",
+    text = "Hex",
+    selected = defaults.showHexButton,
+    focus = false
+}
+
+dlgOptions:check {
     id = "showAlphaBar",
     label = "Bars:",
     text = "Alpha",
@@ -1483,6 +1568,7 @@ dlgOptions:button {
         local showBack <const> = args.showBackButton --[[@as boolean]]
         local showExit <const> = args.showExitButton --[[@as boolean]]
         local showSample <const> = args.showSampleButton --[[@as boolean]]
+        local showHex <const> = args.showHexButton --[[@as boolean]]
         local showAlphaBar <const> = args.showAlphaBar --[[@as boolean]]
 
         local rBitDepth <const> = args.rBitDepth --[[@as integer]]
@@ -1511,6 +1597,7 @@ dlgOptions:button {
         dlgMain:modify { id = "getForeButton", visible = showFore }
         dlgMain:modify { id = "getBackButton", visible = showBack }
         dlgMain:modify { id = "sampleButton", visible = showSample }
+        dlgMain:modify { id = "hexButton", visible = showHex }
         dlgMain:modify { id = "exitMainButton", visible = showExit }
         dlgMain:modify { id = "alphaCanvas", visible = showAlphaBar }
 
