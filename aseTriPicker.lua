@@ -14,8 +14,6 @@ if app.preferences then
 end
 
 local defaults <const> = {
-    -- TODO: Make hue ring weight adjustible.
-
     -- TODO: Allow locked triangle to have custom angle offset?
 
     -- TODO: Have an inner radius where the mouse stops responding
@@ -63,7 +61,7 @@ local defaults <const> = {
     blue = 0.0,
     hexCode = "000000",
 
-    ringInEdge = 0.8875,
+    ringInEdge = 0.88,
     angOffsetRadians = 0.5235987755983,
 
     textDisplayLimit = 50,
@@ -1627,6 +1625,17 @@ dlgOptions:slider {
 
 dlgOptions:newrow { always = false }
 
+dlgOptions:slider {
+    id = "ringInEdge",
+    label = "Weight:",
+    value = math.floor((1.0 - defaults.ringInEdge) * 100.0 + 0.5),
+    min = 5,
+    max = 33,
+    focus = false
+}
+
+dlgOptions:newrow { always = false }
+
 dlgOptions:check {
     id = "lockTriRot",
     label = "Triangle:",
@@ -1726,6 +1735,7 @@ dlgOptions:button {
         local args <const> = dlgOptions.data
 
         local degreesOffset <const> = args.degreesOffset --[[@as integer]]
+        local ringInEdge100 <const> = args.ringInEdge --[[@as integer]]
         local lockTriRot <const> = args.lockTriRot --[[@as boolean]]
         local showFore <const> = args.showForeButton --[[@as boolean]]
         local showBack <const> = args.showBackButton --[[@as boolean]]
@@ -1739,6 +1749,7 @@ dlgOptions:button {
         local bBitDepth <const> = args.bBitDepth --[[@as integer]]
 
         active.angOffsetRadians = (-math.rad(degreesOffset)) % tau
+        active.ringInEdge = 1.0 - ringInEdge100 * 0.01
         active.lockTriRot = lockTriRot
         active.showAlphaBar = showAlphaBar
 
