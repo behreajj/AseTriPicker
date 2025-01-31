@@ -14,7 +14,18 @@ if app.preferences then
 end
 
 local defaults <const> = {
+    -- TODO: Make hue ring weight adjustible.
+
     -- TODO: Allow locked triangle to have custom angle offset?
+
+    -- TODO: Have an inner radius where the mouse stops responding
+    -- to hue ring shift. Might have to make a generic third function
+    -- onMouseUpdate that is called by onMouseMoveMain and onMouseDownMain.
+    -- Might also have to create a dead zone scalar.
+
+    -- TODO: Update github readme images and settings preview image.
+
+    -- TODO: Update Youtube video.
 
     lockTriRot = false,
 
@@ -88,6 +99,7 @@ local defaults <const> = {
 
 local active <const> = {
     lockTriRot = defaults.lockTriRot,
+    ringInEdge = 0.8875,
     angOffsetRadians = 0.5235987755983,
 
     wCanvasMain = defaults.wCanvasMain,
@@ -336,7 +348,7 @@ local function onPaintMain(event)
 
     local angOffsetRadians <const> = active.angOffsetRadians
     local lockTriRot <const> = active.lockTriRot
-    local ringInEdge <const> = defaults.ringInEdge
+    local ringInEdge <const> = active.ringInEdge
     local sqRie <const> = ringInEdge * ringInEdge
 
     local xCenter <const> = wCanvas * 0.5
@@ -712,7 +724,9 @@ local function updateQuantizedRgb(r01, g01, b01, t01, isBackActive)
     local r8 <const> = math.floor(rq * 255.0 + 0.5)
     local g8 <const> = math.floor(gq * 255.0 + 0.5)
     local b8 <const> = math.floor(bq * 255.0 + 0.5)
-    local t8 <const> = showAlphaBar and math.floor(t01 * 255.0 + 0.5) or 255
+    local t8 <const> = showAlphaBar
+        and math.floor(t01 * 255.0 + 0.5)
+        or 255
 
     if isBackActive then
         app.command.SwitchColors()
@@ -968,7 +982,7 @@ local function onMouseMoveMain(event)
 
         updateFromHue(hueWheel)
     elseif isTri then
-        local ringInEdge <const> = defaults.ringInEdge
+        local ringInEdge <const> = active.ringInEdge
         local angOffsetRadians <const> = active.angOffsetRadians
 
         local isBackActive <const> = active.isBackActive
@@ -1062,7 +1076,7 @@ local function onMouseDownMain(event)
     local xMouseDown <const> = event.x
     local yMouseDown <const> = event.y
 
-    local ringInEdge <const> = defaults.ringInEdge
+    local ringInEdge <const> = active.ringInEdge
     local sqRie <const> = ringInEdge * ringInEdge
 
     local wCanvas <const> = active.wCanvasMain
@@ -1435,7 +1449,70 @@ dlgHex:button {
     text = "&OK",
     focus = false,
     onclick = function()
-        -- TODO: Implement
+        local args <const> = dlgHex.data
+        local hexCode <const> = args.hexCode --[[@as string]]
+
+        local hexCodeVerif = hexCode
+        if string.sub(hexCode, 1, 1) == '#' then
+            hexCodeVerif = string.sub(hexCode, 2)
+        end
+
+        local hcParsed <const> = tonumber(hexCodeVerif, 16)
+        if not hcParsed then return end
+
+        -- local rBitDepth <const> = active.rBitDepth
+        local gBitDepth <const> = active.gBitDepth
+        local bBitDepth <const> = active.bBitDepth
+
+        local bShift <const> = 0
+        local gShift <const> = bShift + bBitDepth
+        local rShift <const> = gShift + gBitDepth
+
+        local rMax <const> = active.rMax
+        local gMax <const> = active.gMax
+        local bMax <const> = active.bMax
+
+        local rx <const> = (hcParsed >> rShift) & rMax
+        local gx <const> = (hcParsed >> gShift) & gMax
+        local bx <const> = (hcParsed >> bShift) & bMax
+
+        local r01 <const> = rMax > 0.0 and rx / rMax or 0.0
+        local g01 <const> = gMax > 0.0 and gx / gMax or 0.0
+        local b01 <const> = bMax > 0.0 and bx / bMax or 0.0
+
+        active["redFore"] = r01
+        active["greenFore"] = g01
+        active["blueFore"] = b01
+
+        local hq <const>, sq <const>, vq <const> = rgbToHsv(r01, g01, b01)
+        if vq > 0.0 then
+            if sq > 0.0 then
+                active["hqFore"] = hq
+                active["hueFore"] = hq
+            end
+            active["sqFore"] = sq
+            active["satFore"] = sq
+        end
+        active["vqFore"] = vq
+        active["satFore"] = vq
+
+        active.triggerTriRepaint = true
+        active.triggerRingRepaint = true
+        active.triggerAlphaRepaint = true
+
+        local showAlphaBar <const> = active.showAlphaBar
+        local t01 <const> = active.alphaFore
+        local r8 <const> = math.floor(r01 * 255.0 + 0.5)
+        local g8 <const> = math.floor(g01 * 255.0 + 0.5)
+        local b8 <const> = math.floor(b01 * 255.0 + 0.5)
+        local t8 <const> = showAlphaBar
+            and math.floor(t01 * 255.0 + 0.5)
+            or 255
+
+        app.fgColor = Color { r = r8, g = g8, b = b8, a = t8 }
+
+        dlgMain:repaint()
+        dlgHex:close()
     end
 }
 
