@@ -847,11 +847,11 @@ local function updateFromHue(hue)
     active[isBackActive and "hueBack" or "hueFore"] = hue
 
     local satWheel <const> = isBackActive
-        and (active.satBack or defaults.sat)
-        or (active.satFore or defaults.sat)
+        and active.satBack
+        or active.satFore
     local valWheel <const> = isBackActive
-        and (active.valBack or defaults.val)
-        or (active.valFore or defaults.val)
+        and active.valBack
+        or active.valFore
     updateQuantizedHsv(hue, satWheel, valWheel, isBackActive)
 end
 
@@ -861,11 +861,11 @@ local function updateFromSat(sat)
     active[isBackActive and "satBack" or "satFore"] = sat
 
     local hueWheel <const> = isBackActive
-        and (active.hueBack or defaults.hue)
-        or (active.hueFore or defaults.hue)
+        and active.hueBack
+        or active.hueFore
     local valWheel <const> = isBackActive
-        and (active.valBack or defaults.val)
-        or (active.valFore or defaults.val)
+        and active.valBack
+        or active.valFore
     updateQuantizedHsv(hueWheel, sat, valWheel, isBackActive)
 end
 
@@ -875,11 +875,11 @@ local function updateFromVal(val)
     active[isBackActive and "valBack" or "valFore"] = val
 
     local hueWheel <const> = isBackActive
-        and (active.hueBack or defaults.hue)
-        or (active.hueFore or defaults.hue)
+        and active.hueBack
+        or active.hueFore
     local satWheel <const> = isBackActive
-        and (active.satBack or defaults.sat)
-        or (active.satFore or defaults.sat)
+        and active.satBack
+        or active.satFore
     updateQuantizedHsv(hueWheel, satWheel, val, isBackActive)
 end
 
@@ -1816,6 +1816,9 @@ dlgOptions:button {
         active.rMax = (1 << rBitDepth) - 1.0
         active.gMax = (1 << gBitDepth) - 1.0
         active.bMax = (1 << bBitDepth) - 1.0
+
+        -- TODO: Optimally, updating the options would NOT change the colors
+        -- in the color bar.
         updateFromBitDepth()
 
         active.triggerTriRepaint = true
