@@ -888,26 +888,32 @@ local function onKeyDownMain(event)
     if eventCode == defaults.hueIncrKey then
         updateFromHue((hueActive + hueStep) % 1.0)
         active.triggerTriRepaint = true
+        active.triggerAlphaRepaint = true
         dlgMain:repaint()
     elseif eventCode == defaults.hueDecrKey then
         updateFromHue((hueActive - hueStep) % 1.0)
         active.triggerTriRepaint = true
+        active.triggerAlphaRepaint = true
         dlgMain:repaint()
     elseif isAlt and eventCode == defaults.satIncrKey then
         updateFromSat(math.min(math.max(satActive + satStep, 0.0), 1.0))
         active.triggerTriRepaint = true
+        active.triggerAlphaRepaint = true
         dlgMain:repaint()
     elseif isAlt and eventCode == defaults.satDecrKey then
         updateFromSat(math.min(math.max(satActive - satStep, 0.0), 1.0))
         active.triggerTriRepaint = true
+        active.triggerAlphaRepaint = true
         dlgMain:repaint()
     elseif eventCode == defaults.valIncrKey then
         updateFromVal(math.min(math.max(valActive + valStep, 0.0), 1.0))
         active.triggerTriRepaint = true
+        active.triggerAlphaRepaint = true
         dlgMain:repaint()
     elseif eventCode == defaults.valDecrKey then
         updateFromVal(math.min(math.max(valActive - valStep, 0.0), 1.0))
         active.triggerTriRepaint = true
+        active.triggerAlphaRepaint = true
         dlgMain:repaint()
     end
 end

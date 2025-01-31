@@ -16,7 +16,7 @@ If an error message in Aseprite's console appears, check if the script folder is
 
 A hot key can be assigned to the script by going to `Edit > Keyboard Shortcuts`. The search input box in the top left of the shortcuts dialog can be used to locate the script by its file name.
 
-The dialog can be closed with `Alt+X`. The options menu can be opened with `Alt++`. The foreground color can be retrieved with `Alt+F`; the background color, with `Alt+B`. When the default theme font is used, these shortcuts will be underlined.
+The dialog can be closed with `Alt+X`. The options menu can be opened with `Alt++`. When the default theme font is used, these shortcuts will be underlined.
 
 When the dialog canvas has focus, left click will change the foreground color; right click will adjust the background color. Clicking on the swatches in the bottom-right corner will swap the fore and background color. Clicking and dragging within the hue ring will change the unquantized hue. When the `Shift` key is held down, this change happens in 15 degree steps. Pressing the arrow left and right keys will nudge the hue. Pressing the arrow up and down keys will nudge the value. Holding `Alt` while pressing the up and down keys will nudge the saturation.
 
