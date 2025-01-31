@@ -95,8 +95,8 @@ local defaults <const> = {
 
 local active <const> = {
     lockTriRot = defaults.lockTriRot,
-    ringInEdge = 0.8875,
-    angOffsetRadians = 0.5235987755983,
+    ringInEdge = defaults.ringInEdge,
+    angOffsetRadians = defaults.angOffsetRadians,
 
     wCanvasMain = defaults.wCanvasMain,
     hCanvasMain = defaults.hCanvasMain,
