@@ -1631,7 +1631,7 @@ dlgHex:button {
             active["satFore"] = sq
         end
         active["vqFore"] = vq
-        active["satFore"] = vq
+        active["valFore"] = vq
 
         active.triggerTriRepaint = true
         active.triggerRingRepaint = true
