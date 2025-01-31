@@ -16,10 +16,9 @@ end
 local defaults <const> = {
     -- TODO: Allow locked triangle to have custom angle offset?
 
-    -- TODO: Have an inner radius where the mouse stops responding
-    -- to hue ring shift. Might have to make a generic third function
-    -- onMouseUpdate that is called by onMouseMoveMain and onMouseDownMain.
-    -- Might also have to create a dead zone scalar.
+    -- Might be nice to have an inner radius where the mouse stops responding
+    -- to hue ring shift... but it causes ring to jump when mouse moves from
+    -- deadzone back into into valid magnitude.
 
     -- TODO: Update github readme images and settings preview image.
 
