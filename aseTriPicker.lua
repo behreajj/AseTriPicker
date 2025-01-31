@@ -939,7 +939,9 @@ local function updateFromAse(r8, g8, b8, t8, isBackActive)
     active[isBackActive and "vqBack" or "vqFore"] = vq
 end
 
-local dlgMain <const> = Dialog { title = "Triangle Color Picker" }
+local dlgMain <const> = Dialog {
+    title = "Triangle Color Picker"
+}
 
 local dlgOptions <const> = Dialog {
     title = "Triangle Options",
@@ -955,14 +957,14 @@ local dlgHex <const> = Dialog {
 local function onKeyDownMain(event)
     local isBackActive <const> = active.isBackActive
     local hueActive <const> = isBackActive
-        and (active.hueBack or defaults.hue)
-        or (active.hueFore or defaults.hue)
+        and active.hueBack
+        or active.hueFore
     local satActive <const> = isBackActive
-        and (active.satBack or defaults.sat)
-        or (active.satFore or defaults.sat)
+        and active.satBack
+        or active.satFore
     local valActive <const> = isBackActive
-        and (active.valBack or defaults.val)
-        or (active.valFore or defaults.val)
+        and active.valBack
+        or active.valFore
 
     local isShift = event.shiftKey
     local hueStep <const> = isShift
@@ -1085,8 +1087,8 @@ local function onMouseMoveMain(event)
 
         local isBackActive <const> = active.isBackActive
         local hueActive <const> = isBackActive
-            and (active.hueBack or 0.0)
-            or (active.hueFore or 0.0)
+            and active.hueBack
+            or active.hueFore
 
         -- Find main point of the triangle.
         local lockTriRot <const> = active.lockTriRot
