@@ -20,10 +20,6 @@ local defaults <const> = {
     -- to hue ring shift... but it causes ring to jump when mouse moves from
     -- deadzone back into into valid magnitude.
 
-    -- TODO: Update github readme images and settings preview image.
-
-    -- TODO: Update Youtube video.
-
     lockTriRot = false,
 
     wCanvasMain = math.max(16, 200 // screenScale),
