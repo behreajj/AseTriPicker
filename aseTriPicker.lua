@@ -481,8 +481,8 @@ local function onPaintMain(event)
 
     local isBackActive <const> = active.isBackActive
     local hueActive = isBackActive
-        and (active.hueBack or 0.0)
-        or (active.hueFore or 0.0)
+        and active.hueBack
+        or active.hueFore
 
     -- Find main point of the triangle.
     local thetaActive <const> = hueActive * tau
