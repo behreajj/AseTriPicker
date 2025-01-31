@@ -1426,9 +1426,11 @@ dlgMain:button {
         local hexStr <const> = string.format("%0" .. hexPad .. "X", hex)
         dlgHex:modify { id = "hexCode", text = hexStr }
 
-        local noteStr <const> = string.format(
-            "Format: RGB%d%d%d",
-            rBitDepth, gBitDepth, bBitDepth)
+        local noteStr <const> = is555
+            and "Format: BGR555"
+            or string.format(
+                "Format: RGB%d%d%d",
+                rBitDepth, gBitDepth, bBitDepth)
         dlgHex:modify { id = "bitDepthsNote", text = noteStr }
 
         dlgHex:show { autoscrollbars = false, wait = true }
@@ -1584,6 +1586,8 @@ dlgHex:button {
         -- It's possible in, e.g., RGB555, to enter a code such as
         -- #ABCD which exceeds the limit and will be truncated to #2BCD,
         -- causing confusion.
+        -- TODO: Maybe make a label appear when this
+        -- is the case.
         -- local hcLimit <const> = (rMax << rShift)
         --     | (gMax << gShift)
         --     | (bMax << bShift)
