@@ -33,6 +33,8 @@ local defaults <const> = {
     hCanvasMain = math.max(16, 200 // screenScale),
     wCanvasAlpha = math.max(16, 200 // screenScale),
     hCanvasAlpha = math.max(8, 12 // screenScale),
+    wCanvasHex = math.max(16, 100 // screenScale),
+    hCanvasHex = math.max(4, 16 // screenScale),
 
     reticleSize = math.max(3, 6 // screenScale),
     reticleStroke = math.max(1, 1 // screenScale),
@@ -49,6 +51,7 @@ local defaults <const> = {
     rBitDepth = 8,
     gBitDepth = 8,
     bBitDepth = 8,
+    bitDepthsNote = "Format: RGB888",
 
     hue = 0.0,
     sat = 1.0,
@@ -154,6 +157,10 @@ local active <const> = {
     isBackActive = false,
     mouseDownRing = false,
     mouseDownTri = false,
+
+    rPreview = 1.0,
+    gPreview = 0.0,
+    bPreview = 0.0,
 }
 
 ---@param h number
@@ -855,7 +862,7 @@ local dlgOptions <const> = Dialog {
 }
 
 local dlgHex <const> = Dialog {
-    title = "Triangle Hexadecimal",
+    title = "Triangle Hex Code",
     parent = dlgMain
 }
 
@@ -1384,6 +1391,10 @@ dlgMain:button {
         local greenFore <const> = active.greenFore
         local blueFore <const> = active.blueFore
 
+        active.rPreview = redFore
+        active.gPreview = greenFore
+        active.bPreview = blueFore
+
         local redActive <const> = redFore
         local greenActive <const> = greenFore
         local blueActive <const> = blueFore
@@ -1405,8 +1416,14 @@ dlgMain:button {
             | math.floor(greenActive * gMax + 0.5) << gShift
             | math.floor(blueActive * bMax + 0.5) << bShift
 
-        local str = string.format("%0" .. hexPad .. "X", hex)
-        dlgHex:modify { id = "hexCode", text = str }
+        local hexStr <const> = string.format("%0" .. hexPad .. "X", hex)
+        dlgHex:modify { id = "hexCode", text = hexStr }
+
+        local noteStr <const> = string.format(
+            "Format: RGB%d%d%d",
+            rBitDepth, gBitDepth, bBitDepth)
+        dlgHex:modify { id = "bitDepthsNote", text = noteStr }
+
         dlgHex:show { autoscrollbars = false, wait = true }
     end
 }
@@ -1435,11 +1452,80 @@ dlgMain:button {
 
 -- region Hex Menu
 
+dlgHex:canvas {
+    id = "hexPreviewCanvas",
+    focus = false,
+    width = defaults.wCanvasHex,
+    height = defaults.hCanvasHex,
+    vexpand = true,
+    hexpand = true,
+    onpaint = function(event)
+        local ctx <const> = event.context
+        ctx.antialias = false
+        ctx.blendMode = BlendMode.SRC
+
+        local r01 <const> = active.rPreview
+        local g01 <const> = active.gPreview
+        local b01 <const> = active.bPreview
+
+        local r8 <const> = math.floor(r01 * 255.0 + 0.5)
+        local g8 <const> = math.floor(g01 * 255.0 + 0.5)
+        local b8 <const> = math.floor(b01 * 255.0 + 0.5)
+
+        ctx.color = Color { r = r8, g = g8, b = b8, a = 255 }
+        ctx:fillRect(Rectangle(0, 0, ctx.width, ctx.height))
+    end
+}
+
+dlgHex:newrow { always = false }
+
+dlgHex:label {
+    id = "bitDepthsNote",
+    text = defaults.bitDepthsNote
+}
+
 dlgHex:entry {
     id = "hexCode",
-    label = "#:",
     text = defaults.hexCode,
-    focus = true
+    focus = true,
+    onchange = function()
+        local args <const> = dlgHex.data
+        local hexCode <const> = args.hexCode --[[@as string]]
+
+        local hexCodeVerif = hexCode
+        if string.sub(hexCode, 1, 1) == '#' then
+            hexCodeVerif = string.sub(hexCode, 2)
+        end
+
+        local hcParsed <const> = tonumber(hexCodeVerif, 16)
+        if not hcParsed then return end
+
+        -- local rBitDepth <const> = active.rBitDepth
+        local gBitDepth <const> = active.gBitDepth
+        local bBitDepth <const> = active.bBitDepth
+
+        local bShift <const> = 0
+        local gShift <const> = bShift + bBitDepth
+        local rShift <const> = gShift + gBitDepth
+
+        local rMax <const> = active.rMax
+        local gMax <const> = active.gMax
+        local bMax <const> = active.bMax
+
+        local rx <const> = (hcParsed >> rShift) & rMax
+        local gx <const> = (hcParsed >> gShift) & gMax
+        local bx <const> = (hcParsed >> bShift) & bMax
+
+        local r01 <const> = rMax > 0.0 and rx / rMax or 0.0
+        local g01 <const> = gMax > 0.0 and gx / gMax or 0.0
+        local b01 <const> = bMax > 0.0 and bx / bMax or 0.0
+
+        active.rPreview = r01
+        active.gPreview = g01
+        active.bPreview = b01
+
+        dlgHex:repaint()
+    end
 }
 
 dlgHex:newrow { always = false }
