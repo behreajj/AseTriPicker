@@ -1346,9 +1346,15 @@ dlgMain:button {
         local g8fg <const> = fgColor.green
         local b8fg <const> = fgColor.blue
         local t8fg <const> = fgColor.alpha
+        -- It's poor form for a getter to change the property, but this
+        -- is helpful when colors are chosen from palette index.
+        -- app.fgColor = Color { r = r8fg, g = g8fg, b = b8fg, a = t8fg }
+
         updateFromAse(r8fg, g8fg, b8fg, t8fg, false)
+
         active.triggerTriRepaint = true
         active.triggerAlphaRepaint = true
+
         dlgMain:repaint()
     end
 }
@@ -1365,10 +1371,14 @@ dlgMain:button {
         local g8bg <const> = bgColor.green
         local b8bg <const> = bgColor.blue
         local t8bg <const> = bgColor.alpha
+        -- app.fgColor = Color { r = r8bg, g = g8bg, b = b8bg, a = t8bg }
         app.command.SwitchColors()
+
         updateFromAse(r8bg, g8bg, b8bg, t8bg, true)
+
         active.triggerTriRepaint = true
         active.triggerAlphaRepaint = true
+
         dlgMain:repaint()
     end
 }
