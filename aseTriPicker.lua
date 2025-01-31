@@ -1513,9 +1513,9 @@ dlgHex:entry {
         local gBitDepth <const> = active.gBitDepth
         local bBitDepth <const> = active.bBitDepth
 
+        local rShift <const> = bBitDepth + gBitDepth
+        local gShift <const> = bBitDepth
         local bShift <const> = 0
-        local gShift <const> = bShift + bBitDepth
-        local rShift <const> = gShift + gBitDepth
 
         local rMax <const> = active.rMax
         local gMax <const> = active.gMax
@@ -1571,9 +1571,9 @@ dlgHex:button {
         --     "rBitDepth: %d, gBitDepth: %d, bBitDepth: %d",
         --     rBitDepth, gBitDepth, bBitDepth))
 
-        local bShift <const> = 0
-        local gShift <const> = bBitDepth
         local rShift <const> = bBitDepth + gBitDepth
+        local gShift <const> = bBitDepth
+        local bShift <const> = 0
 
         -- print(string.format(
         --     "rShift: %d, gShift: %d, bShift: %d",
