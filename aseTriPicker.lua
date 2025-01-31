@@ -1555,6 +1555,7 @@ dlgHex:button {
             hexCodeVerif = string.sub(hexCode, 2)
         end
 
+        -- TODO: Consolidate this with parse code above.
         local hcParsed <const> = tonumber(hexCodeVerif, 16)
         if not hcParsed then return end
 
@@ -1579,6 +1580,13 @@ dlgHex:button {
         local rMax <const> = active.rMax
         local gMax <const> = active.gMax
         local bMax <const> = active.bMax
+
+        -- It's possible in, e.g., RGB555, to enter a code such as
+        -- #ABCD which exceeds the limit and will be truncated to #2BCD,
+        -- causing confusion.
+        -- local hcLimit <const> = (rMax << rShift)
+        --     | (gMax << gShift)
+        --     | (bMax << bShift)
 
         -- print(string.format(
         --     "rMax: %d, gMax: %d, bMax: %d",
