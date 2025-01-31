@@ -1499,6 +1499,7 @@ dlgHex:entry {
         local args <const> = dlgHex.data
         local hexCode <const> = args.hexCode --[[@as string]]
 
+        -- TODO: Consolidate this with functionality below.
         local hexCodeVerif = hexCode
         if string.sub(hexCode, 1, 1) == '#' then
             hexCodeVerif = string.sub(hexCode, 2)
@@ -1511,22 +1512,21 @@ dlgHex:entry {
         local gBitDepth <const> = active.gBitDepth
         local bBitDepth <const> = active.bBitDepth
 
-        local bShift <const> = 0
-        local gShift <const> = bShift + bBitDepth
-        local rShift <const> = gShift + gBitDepth
-
         local rMax <const> = active.rMax
         local gMax <const> = active.gMax
         local bMax <const> = active.bMax
 
-        local rx = (hcParsed >> rShift) & rMax
-        local gx <const> = (hcParsed >> gShift) & gMax
-        local bx = (hcParsed >> bShift) & bMax
-
         local is555 <const> = rBitDepth == 5
             and gBitDepth == 5
             and bBitDepth == 5
-        if is555 then rx, bx = bx, rx end
+
+        local rShift <const> = is555 and bBitDepth + gBitDepth or 0
+        local gShift <const> = bBitDepth
+        local bShift <const> = is555 and 0 or bBitDepth + gBitDepth
+
+        local rx = (hcParsed >> rShift) & rMax
+        local gx <const> = (hcParsed >> gShift) & gMax
+        local bx = (hcParsed >> bShift) & bMax
 
         local r01 <const> = rMax > 0.0 and rx / rMax or 0.0
         local g01 <const> = gMax > 0.0 and gx / gMax or 0.0
@@ -1555,7 +1555,7 @@ dlgHex:button {
             hexCodeVerif = string.sub(hexCode, 2)
         end
 
-        local hcParsed <const> = tonumber(hexCodeVerif, 16)
+        local hcParsed = tonumber(hexCodeVerif, 16)
         if not hcParsed then return end
 
         -- print(string.format("hcParsed: %08x", hcParsed))
@@ -1568,14 +1568,6 @@ dlgHex:button {
         --     "rBitDepth: %d, gBitDepth: %d, bBitDepth: %d",
         --     rBitDepth, gBitDepth, bBitDepth))
 
-        local bShift <const> = 0
-        local gShift <const> = bBitDepth
-        local rShift <const> = bBitDepth + gBitDepth
-
-        -- print(string.format(
-        --     "rShift: %d, gShift: %d, bShift: %d",
-        --     rShift, gShift, bShift))
-
         local rMax <const> = active.rMax
         local gMax <const> = active.gMax
         local bMax <const> = active.bMax
@@ -1584,14 +1576,28 @@ dlgHex:button {
         --     "rMax: %d, gMax: %d, bMax: %d",
         --     rMax, gMax, bMax))
 
-        local rx = (hcParsed >> rShift) & rMax
-        local gx <const> = (hcParsed >> gShift) & gMax
-        local bx = (hcParsed >> bShift) & bMax
-
         local is555 <const> = rBitDepth == 5
             and gBitDepth == 5
             and bBitDepth == 5
-        if is555 then rx, bx = bx, rx end
+
+        local rShift <const> = is555 and bBitDepth + gBitDepth or 0
+        local gShift <const> = bBitDepth
+        local bShift <const> = is555 and 0 or bBitDepth + gBitDepth
+
+        -- print(string.format(
+        --     "rShift: %d, gShift: %d, bShift: %d",
+        --     rShift, gShift, bShift))
+
+        -- It's possible in, e.g., RGB555, to enter a code such as
+        -- #ABCD which exceeds the limit and will be truncated to #2BCD,
+        -- causing confusion.
+        -- local hcLimit <const> = (rMax << rShift)
+        --     | (gMax << gShift)
+        --     | (bMax << bShift)
+
+        local rx <const> = (hcParsed >> rShift) & rMax
+        local gx <const> = (hcParsed >> gShift) & gMax
+        local bx <const> = (hcParsed >> bShift) & bMax
 
         -- print(string.format(
         --     "rx: %d (0x%x), gx: %d (0x%x), bx: %d (0x%x)",
