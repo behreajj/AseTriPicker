@@ -156,6 +156,39 @@ local active <const> = {
     bPreview = 0.0,
 }
 
+---@param r01 number
+---@param g01 number
+---@param b01 number
+---@return string
+local function rgbToHexStr(r01, g01, b01)
+    local rBitDepth <const> = active.rBitDepth
+    local gBitDepth <const> = active.gBitDepth
+    local bBitDepth <const> = active.bBitDepth
+
+    local rMax <const> = active.rMax
+    local gMax <const> = active.gMax
+    local bMax <const> = active.bMax
+
+    local is555 <const> = rBitDepth == 5
+        and gBitDepth == 5
+        and bBitDepth == 5
+
+    local shift0 <const> = is555 and 0 or bBitDepth + gBitDepth
+    local shift1 <const> = bBitDepth
+    local shift2 <const> = is555 and bBitDepth + gBitDepth or 0
+
+    local hex <const> = math.floor(r01 * rMax + 0.5) << shift0
+        | math.floor(g01 * gMax + 0.5) << shift1
+        | math.floor(b01 * bMax + 0.5) << shift2
+
+    local hexPad <const> = math.ceil((rBitDepth
+        + gBitDepth
+        + bBitDepth) * 0.25)
+    local hexStr <const> = string.format("%0" .. hexPad .. "X", hex)
+
+    return hexStr
+end
+
 ---@param hexCode string
 ---@return boolean isValid
 ---@return number r
@@ -745,26 +778,9 @@ local function onPaintMain(event)
                 "A: %.2f%%", alphaActive * 100), 2, 2 + yIncr * 8)
         end
 
-        local rBitDepth <const> = active.rBitDepth
-        local gBitDepth <const> = active.gBitDepth
-        local bBitDepth <const> = active.bBitDepth
-
-        local is555 <const> = rBitDepth == 5
-            and gBitDepth == 5
-            and bBitDepth == 5
-
-        -- TODO: Consolidate to a single function.
-        local rShift <const> = is555 and bBitDepth + gBitDepth or 0
-        local gShift <const> = bBitDepth
-        local bShift <const> = is555 and 0 or bBitDepth + gBitDepth
-
-        local hex <const> = math.floor(blueActive * bMax + 0.5) << rShift
-            | math.floor(greenActive * gMax + 0.5) << gShift
-            | math.floor(redActive * rMax + 0.5) << bShift
-
-        local hexPad <const> = math.ceil((rShift + rBitDepth) * 0.25)
+        local hexStr <const> = rgbToHexStr(redActive, greenActive, blueActive)
         local hexVertOffset <const> = showAlphaBar and 10 or 8
-        ctx:fillText(string.format("#%0" .. hexPad .. "X", hex),
+        ctx:fillText('#' .. hexStr,
             2, 2 + yIncr * hexVertOffset)
     end
 end
@@ -1470,40 +1486,28 @@ dlgMain:button {
         active.gPreview = greenFore
         active.bPreview = blueFore
 
-        local redActive <const> = redFore
-        local greenActive <const> = greenFore
-        local blueActive <const> = blueFore
+        local r01 <const> = redFore
+        local g01 <const> = greenFore
+        local b01 <const> = blueFore
+
+        local hexStr <const> = rgbToHexStr(r01, g01, b01)
+
+        dlgHex:modify { id = "hexCode", text = hexStr }
 
         local rBitDepth <const> = active.rBitDepth
         local gBitDepth <const> = active.gBitDepth
         local bBitDepth <const> = active.bBitDepth
 
-        local rMax <const> = active.rMax
-        local gMax <const> = active.gMax
-        local bMax <const> = active.bMax
-
         local is555 <const> = rBitDepth == 5
             and gBitDepth == 5
             and bBitDepth == 5
-
-        -- TODO: Consolidate to a single function.
-        local rShift <const> = is555 and bBitDepth + gBitDepth or 0
-        local gShift <const> = bBitDepth
-        local bShift <const> = is555 and 0 or bBitDepth + gBitDepth
-
-        local hex <const> = math.floor(blueActive * bMax + 0.5) << rShift
-            | math.floor(greenActive * gMax + 0.5) << gShift
-            | math.floor(redActive * rMax + 0.5) << bShift
-
-        local hexPad <const> = math.ceil((rShift + rBitDepth) * 0.25)
-        local hexStr <const> = string.format("%0" .. hexPad .. "X", hex)
-        dlgHex:modify { id = "hexCode", text = hexStr }
 
         local noteStr <const> = is555
             and "Format: BGR555"
             or string.format(
                 "Format: RGB%d%d%d",
                 rBitDepth, gBitDepth, bBitDepth)
+
         dlgHex:modify { id = "bitDepthsNote", text = noteStr }
 
         dlgHex:show { autoscrollbars = false, wait = true }
