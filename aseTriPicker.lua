@@ -678,15 +678,19 @@ local function onPaintMain(event)
         local gBitDepth <const> = active.gBitDepth
         local bBitDepth <const> = active.bBitDepth
 
-        local bShift <const> = 0
-        local gShift <const> = bShift + bBitDepth
-        local rShift <const> = gShift + gBitDepth
+        local is555 <const> = rBitDepth == 5
+            and gBitDepth == 5
+            and bBitDepth == 5
+
+        local rShift <const> = is555 and bBitDepth + gBitDepth or 0
+        local gShift <const> = bBitDepth
+        local bShift <const> = is555 and 0 or bBitDepth + gBitDepth
+
+        local hex <const> = math.floor(blueActive * bMax + 0.5) << rShift
+            | math.floor(greenActive * gMax + 0.5) << gShift
+            | math.floor(redActive * rMax + 0.5) << bShift
+
         local hexPad <const> = math.ceil((rShift + rBitDepth) * 0.25)
-
-        local hex <const> = floor(redActive * rMax + 0.5) << rShift
-            | floor(greenActive * gMax + 0.5) << gShift
-            | floor(blueActive * bMax + 0.5) << bShift
-
         local hexVertOffset <const> = showAlphaBar and 10 or 8
         ctx:fillText(string.format("#%0" .. hexPad .. "X", hex),
             2, 2 + yIncr * hexVertOffset)
@@ -1406,15 +1410,19 @@ dlgMain:button {
         local gMax <const> = active.gMax
         local bMax <const> = active.bMax
 
-        local bShift <const> = 0
-        local gShift <const> = bShift + bBitDepth
-        local rShift <const> = gShift + gBitDepth
-        local hexPad <const> = math.ceil((rShift + rBitDepth) * 0.25)
+        local is555 <const> = rBitDepth == 5
+            and gBitDepth == 5
+            and bBitDepth == 5
 
-        local hex <const> = math.floor(redActive * rMax + 0.5) << rShift
+        local rShift <const> = is555 and bBitDepth + gBitDepth or 0
+        local gShift <const> = bBitDepth
+        local bShift <const> = is555 and 0 or bBitDepth + gBitDepth
+
+        local hex <const> = math.floor(blueActive * bMax + 0.5) << rShift
             | math.floor(greenActive * gMax + 0.5) << gShift
-            | math.floor(blueActive * bMax + 0.5) << bShift
+            | math.floor(redActive * rMax + 0.5) << bShift
 
+        local hexPad <const> = math.ceil((rShift + rBitDepth) * 0.25)
         local hexStr <const> = string.format("%0" .. hexPad .. "X", hex)
         dlgHex:modify { id = "hexCode", text = hexStr }
 
@@ -1499,7 +1507,7 @@ dlgHex:entry {
         local hcParsed <const> = tonumber(hexCodeVerif, 16)
         if not hcParsed then return end
 
-        -- local rBitDepth <const> = active.rBitDepth
+        local rBitDepth <const> = active.rBitDepth
         local gBitDepth <const> = active.gBitDepth
         local bBitDepth <const> = active.bBitDepth
 
@@ -1511,9 +1519,14 @@ dlgHex:entry {
         local gMax <const> = active.gMax
         local bMax <const> = active.bMax
 
-        local rx <const> = (hcParsed >> rShift) & rMax
+        local rx = (hcParsed >> rShift) & rMax
         local gx <const> = (hcParsed >> gShift) & gMax
-        local bx <const> = (hcParsed >> bShift) & bMax
+        local bx = (hcParsed >> bShift) & bMax
+
+        local is555 <const> = rBitDepth == 5
+            and gBitDepth == 5
+            and bBitDepth == 5
+        if is555 then rx, bx = bx, rx end
 
         local r01 <const> = rMax > 0.0 and rx / rMax or 0.0
         local g01 <const> = gMax > 0.0 and gx / gMax or 0.0
@@ -1545,25 +1558,52 @@ dlgHex:button {
         local hcParsed <const> = tonumber(hexCodeVerif, 16)
         if not hcParsed then return end
 
-        -- local rBitDepth <const> = active.rBitDepth
+        -- print(string.format("hcParsed: %08x", hcParsed))
+
+        local rBitDepth <const> = active.rBitDepth
         local gBitDepth <const> = active.gBitDepth
         local bBitDepth <const> = active.bBitDepth
 
+        -- print(string.format(
+        --     "rBitDepth: %d, gBitDepth: %d, bBitDepth: %d",
+        --     rBitDepth, gBitDepth, bBitDepth))
+
         local bShift <const> = 0
-        local gShift <const> = bShift + bBitDepth
-        local rShift <const> = gShift + gBitDepth
+        local gShift <const> = bBitDepth
+        local rShift <const> = bBitDepth + gBitDepth
+
+        -- print(string.format(
+        --     "rShift: %d, gShift: %d, bShift: %d",
+        --     rShift, gShift, bShift))
 
         local rMax <const> = active.rMax
         local gMax <const> = active.gMax
         local bMax <const> = active.bMax
 
-        local rx <const> = (hcParsed >> rShift) & rMax
+        -- print(string.format(
+        --     "rMax: %d, gMax: %d, bMax: %d",
+        --     rMax, gMax, bMax))
+
+        local rx = (hcParsed >> rShift) & rMax
         local gx <const> = (hcParsed >> gShift) & gMax
-        local bx <const> = (hcParsed >> bShift) & bMax
+        local bx = (hcParsed >> bShift) & bMax
+
+        local is555 <const> = rBitDepth == 5
+            and gBitDepth == 5
+            and bBitDepth == 5
+        if is555 then rx, bx = bx, rx end
+
+        -- print(string.format(
+        --     "rx: %d (0x%x), gx: %d (0x%x), bx: %d (0x%x)",
+        --     rx, rx, gx, gx, bx, bx))
 
         local r01 <const> = rMax > 0.0 and rx / rMax or 0.0
         local g01 <const> = gMax > 0.0 and gx / gMax or 0.0
         local b01 <const> = bMax > 0.0 and bx / bMax or 0.0
+
+        -- print(string.format(
+        --     "r01: %03f, g01: %03f, b01: %03f",
+        --     r01, g01, b01))
 
         active["redFore"] = r01
         active["greenFore"] = g01
