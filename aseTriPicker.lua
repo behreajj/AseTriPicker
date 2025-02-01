@@ -1387,6 +1387,8 @@ dlgMain:button {
     focus = false,
     visible = defaults.showForeButton,
     onclick = function()
+        if not app.sprite then return end
+
         local fgColor <const> = app.fgColor
         local r8fg <const> = fgColor.red
         local g8fg <const> = fgColor.green
@@ -1411,6 +1413,8 @@ dlgMain:button {
     focus = false,
     visible = defaults.showBackButton,
     onclick = function()
+        if not app.sprite then return end
+
         app.command.SwitchColors()
         local bgColor <const> = app.fgColor
         local r8bg <const> = bgColor.red
