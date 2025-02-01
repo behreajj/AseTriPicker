@@ -38,7 +38,7 @@ Colors can be quantized to a bit depth in RGB. Quantization leads to significant
 
 ![Lock Tri](screenCap3.png)
 
-When the triangle's rotation is locked, a white reticle indicates the current hue position.
+When the triangle's rotation is locked, a white reticle indicates the current hue position. The angle of the locked position can be adjusted.
 
 ![Alpha Bar](screenCap4.png)
 

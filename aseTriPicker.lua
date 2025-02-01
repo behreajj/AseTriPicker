@@ -1837,8 +1837,8 @@ dlgOptions:button {
         active.gMax = (1 << gBitDepth) - 1.0
         active.bMax = (1 << bBitDepth) - 1.0
 
-        -- TODO: Optimally, updating the options would NOT change the colors
-        -- in the color bar.
+        -- For some changes aside from bit depth, maybe it'd be better to not
+        -- change the color in the color bar?
         updateFromBitDepth()
 
         active.triggerTriRepaint = true
