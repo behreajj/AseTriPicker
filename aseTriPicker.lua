@@ -1877,13 +1877,19 @@ do
     local t8fg <const> = fgColor.alpha
     updateFromAse(r8fg, g8fg, b8fg, t8fg, false)
 
-    app.command.SwitchColors()
-    local bgColor <const> = app.fgColor
-    local r8bg <const> = bgColor.red
-    local g8bg <const> = bgColor.green
-    local b8bg <const> = bgColor.blue
-    local t8bg <const> = bgColor.alpha
-    app.command.SwitchColors()
+    local r8bg = 255 - r8fg
+    local g8bg = 255 - g8fg
+    local b8bg = 255 - b8fg
+    local t8bg = t8fg
+    if app.sprite then
+        app.command.SwitchColors()
+        local bgColor <const> = app.fgColor
+        r8bg = bgColor.red
+        g8bg = bgColor.green
+        b8bg = bgColor.blue
+        t8bg = bgColor.alpha
+        app.command.SwitchColors()
+    end
     updateFromAse(r8bg, g8bg, b8bg, t8bg, true)
 
     dlgMain:repaint()
