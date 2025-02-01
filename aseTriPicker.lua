@@ -1521,7 +1521,6 @@ dlgMain:button {
                 rBitDepth, gBitDepth, bBitDepth)
 
         dlgHex:modify { id = "bitDepthsNote", text = noteStr }
-
         dlgHex:show { autoscrollbars = false, wait = true }
     end
 }
@@ -1558,6 +1557,11 @@ dlgHex:canvas {
     vexpand = true,
     hexpand = true,
     onpaint = function(event)
+        -- TODO: A repaint is not called when a child dialog
+        -- is opened, then closed, then the fore and rear colors are swapped,
+        -- then the child dialog is reopened. Maybe assign a preview color
+        -- to image bytes then assign the image on repaint?
+
         local ctx <const> = event.context
         ctx.antialias = false
         ctx.blendMode = BlendMode.SRC
@@ -1566,9 +1570,17 @@ dlgHex:canvas {
         local g01 <const> = active.gPreview
         local b01 <const> = active.bPreview
 
+        -- print(string.format(
+        --     "r01: %.3f, g01: %.3f, b01: %.3f",
+        --     r01, g01, b01))
+
         local r8 <const> = math.floor(r01 * 255.0 + 0.5)
         local g8 <const> = math.floor(g01 * 255.0 + 0.5)
         local b8 <const> = math.floor(b01 * 255.0 + 0.5)
+
+        -- print(string.format(
+        --     "r8: %d, g8: %d, b8: %d",
+        --     r8, g8, b8))
 
         ctx.color = Color { r = r8, g = g8, b = b8, a = 255 }
         ctx:fillRect(Rectangle(0, 0, ctx.width, ctx.height))
