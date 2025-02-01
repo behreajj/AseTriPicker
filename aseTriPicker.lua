@@ -14,13 +14,14 @@ if app.preferences then
 end
 
 local defaults <const> = {
-    -- TODO: Allow locked triangle to have custom angle offset?
-
     -- Might be nice to have an inner radius where the mouse stops responding
     -- to hue ring shift... but it causes ring to jump when mouse moves from
     -- deadzone back into into valid magnitude.
 
     lockTriRot = false,
+    ringInEdge = 0.88,
+    angOffsetRadians = 0.5235987755983,
+    angLockRadians = 0.0,
 
     wCanvasMain = math.max(16, 200 // screenScale),
     hCanvasMain = math.max(16, 200 // screenScale),
@@ -55,9 +56,6 @@ local defaults <const> = {
     green = 0.0,
     blue = 0.0,
     hexCode = "000000",
-
-    ringInEdge = 0.88,
-    angOffsetRadians = 0.5235987755983,
 
     textDisplayLimit = 50,
     shiftLevels = 24,
@@ -97,6 +95,7 @@ local active <const> = {
     lockTriRot = defaults.lockTriRot,
     ringInEdge = defaults.ringInEdge,
     angOffsetRadians = defaults.angOffsetRadians,
+    angLockRadians = 0.0,
 
     wCanvasMain = defaults.wCanvasMain,
     hCanvasMain = defaults.hCanvasMain,
@@ -487,7 +486,7 @@ local function onPaintMain(event)
     -- Find main point of the triangle.
     local thetaActive <const> = hueActive * tau
     local thetaTri <const> = lockTriRot
-        and 0
+        and active.angLockRadians
         or thetaActive - angOffsetRadians
     local xTri1 <const> = ringInEdge * math.cos(thetaTri)
     local yTri1 <const> = ringInEdge * math.sin(thetaTri)
@@ -1092,11 +1091,15 @@ local function onMouseMoveMain(event)
 
         -- Find main point of the triangle.
         local lockTriRot <const> = active.lockTriRot
-        local thetaActive <const> = hueActive * tau
 
         local xTri1 = ringInEdge * 1.0
         local yTri1 = ringInEdge * 0.0
-        if not lockTriRot then
+        if lockTriRot then
+            local angLockRadians <const> = active.angLockRadians
+            xTri1 = ringInEdge * math.cos(angLockRadians)
+            yTri1 = ringInEdge * math.sin(angLockRadians)
+        else
+            local thetaActive <const> = hueActive * tau
             local thetaTri <const> = thetaActive - angOffsetRadians
             xTri1 = ringInEdge * math.cos(thetaTri)
             yTri1 = ringInEdge * math.sin(thetaTri)
@@ -1683,9 +1686,11 @@ dlgHex:button {
 
 -- region Options Menu
 
+dlgOptions:separator { text = "Ring" }
+
 dlgOptions:slider {
     id = "degreesOffset",
-    label = "Ring:",
+    label = "Angle:",
     value = math.floor(-math.deg(
         defaults.angOffsetRadians) % 360 + 0.5),
     min = 0,
@@ -1704,14 +1709,30 @@ dlgOptions:slider {
     focus = false
 }
 
-dlgOptions:newrow { always = false }
+dlgOptions:separator { text = "Triangle" }
 
 dlgOptions:check {
     id = "lockTriRot",
-    label = "Triangle:",
+    label = "Angle:",
     text = "Lock",
     selected = defaults.lockTriRot,
-    focus = false
+    focus = false,
+    onclick = function()
+        local args <const> = dlgOptions.data
+        local lockTriRot <const> = args.lockTriRot --[[@as boolean]]
+        dlgOptions:modify { id = "lockOffset", visible = lockTriRot }
+    end
+}
+
+dlgOptions:newrow { always = false }
+
+dlgOptions:slider {
+    id = "lockOffset",
+    value = math.floor(math.deg(defaults.angLockRadians) + 0.5),
+    min = 0,
+    max = 360,
+    focus = false,
+    visible = defaults.lockTriRot,
 }
 
 dlgOptions:separator { text = "Bit Depth" }
@@ -1807,6 +1828,8 @@ dlgOptions:button {
         local degreesOffset <const> = args.degreesOffset --[[@as integer]]
         local ringInEdge100 <const> = args.ringInEdge --[[@as integer]]
         local lockTriRot <const> = args.lockTriRot --[[@as boolean]]
+        local lockOffset <const> = args.lockOffset --[[@as integer]]
+
         local showFore <const> = args.showForeButton --[[@as boolean]]
         local showBack <const> = args.showBackButton --[[@as boolean]]
         local showExit <const> = args.showExitButton --[[@as boolean]]
@@ -1821,6 +1844,7 @@ dlgOptions:button {
         active.angOffsetRadians = (-math.rad(degreesOffset)) % tau
         active.ringInEdge = 1.0 - ringInEdge100 * 0.01
         active.lockTriRot = lockTriRot
+        active.angLockRadians = math.rad(lockOffset)
         active.showAlphaBar = showAlphaBar
 
         active.rBitDepth = rBitDepth
