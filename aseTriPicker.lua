@@ -149,10 +149,6 @@ local active <const> = {
     isBackActive = false,
     mouseDownRing = false,
     mouseDownTri = false,
-
-    rPreview = 0.0,
-    gPreview = 0.0,
-    bPreview = 0.0,
 }
 
 ---@param r01 number
@@ -952,6 +948,51 @@ local dlgHex <const> = Dialog {
     parent = dlgMain
 }
 
+---@param r01 number
+---@param g01 number
+---@param b01 number
+---@param t01 number
+local function updateHexDisplay(r01, g01, b01, t01)
+    local rMax <const> = active.rMax
+    local gMax <const> = active.gMax
+    local bMax <const> = active.bMax
+
+    local r8 <const> = math.floor(r01 * 255.0 + 0.5)
+    local g8 <const> = math.floor(g01 * 255.0 + 0.5)
+    local b8 <const> = math.floor(b01 * 255.0 + 0.5)
+
+    local rx <const> = math.floor(r01 * rMax + 0.5)
+    local gx <const> = math.floor(g01 * gMax + 0.5)
+    local bx <const> = math.floor(b01 * bMax + 0.5)
+
+    local showAlphaBar <const> = active.showAlphaBar
+    local t8 <const> = showAlphaBar
+        and math.floor(t01 * 255.0 + 0.5)
+        or 255
+
+    dlgHex:modify {
+        id = "rNote",
+        text = string.format("R: %d / %d", rx, rMax)
+    }
+
+    dlgHex:modify {
+        id = "gNote",
+        text = string.format("G: %d / %d", gx, gMax)
+    }
+
+    dlgHex:modify {
+        id = "bNote",
+        text = string.format("B: %d / %d", bx, bMax)
+    }
+
+    dlgHex:modify { id = "previewColor", enabled = true }
+    dlgHex:modify {
+        id = "previewColor",
+        color = Color { r = r8, g = g8, b = b8, a = t8 }
+    }
+    dlgHex:modify { id = "previewColor", enabled = false }
+end
+
 ---@param event KeyEvent
 local function onKeyDownMain(event)
     local isBackActive <const> = active.isBackActive
@@ -1490,36 +1531,14 @@ dlgMain:button {
     focus = false,
     visible = defaults.showHexButton,
     onclick = function()
-        -- Whether the back is active is a hold down
-        -- on mouse press, so it doesn't work well
-        -- in this case.
-        local redFore <const> = active.redFore
-        local greenFore <const> = active.greenFore
-        local blueFore <const> = active.blueFore
-
-        local r01 <const> = redFore
-        local g01 <const> = greenFore
-        local b01 <const> = blueFore
-
+        -- Whether the back is active is a hold down on mouse press,
+        -- so it doesn't work well in this case.
+        local r01 <const> = active.redFore
+        local g01 <const> = active.greenFore
+        local b01 <const> = active.blueFore
         local hexStr <const> = rgbToHexStr(r01, g01, b01)
-
         dlgHex:modify { id = "hexCode", text = hexStr }
-
-        local rBitDepth <const> = active.rBitDepth
-        local gBitDepth <const> = active.gBitDepth
-        local bBitDepth <const> = active.bBitDepth
-
-        local is555 <const> = rBitDepth == 5
-            and gBitDepth == 5
-            and bBitDepth == 5
-
-        local noteStr <const> = is555
-            and "Format: BGR555"
-            or string.format(
-                "Format: RGB%d%d%d",
-                rBitDepth, gBitDepth, bBitDepth)
-
-        dlgHex:modify { id = "bitDepthsNote", text = noteStr }
+        updateHexDisplay(r01, g01, b01, active.alphaFore)
         dlgHex:show { autoscrollbars = false, wait = true }
     end
 }
@@ -1548,50 +1567,23 @@ dlgMain:button {
 
 -- region Hex Menu
 
-dlgHex:canvas {
-    id = "hexPreviewCanvas",
+dlgHex:color {
+    id = "previewColor",
+    color = Color { r = 0, g = 0, b = 0, a = 0 },
     focus = false,
-    width = defaults.wCanvasHex,
-    height = defaults.hCanvasHex,
     vexpand = true,
     hexpand = true,
-    onpaint = function(event)
-        -- TODO: A repaint is not called when a child dialog
-        -- is opened, then closed, then the fore and rear colors are swapped,
-        -- then the child dialog is reopened. Maybe assign a preview color
-        -- to image bytes then assign the image on repaint?
-
-        local ctx <const> = event.context
-        ctx.antialias = false
-        ctx.blendMode = BlendMode.SRC
-
-        local r01 <const> = active.rPreview
-        local g01 <const> = active.gPreview
-        local b01 <const> = active.bPreview
-
-        -- print(string.format(
-        --     "r01: %.3f, g01: %.3f, b01: %.3f",
-        --     r01, g01, b01))
-
-        local r8 <const> = math.floor(r01 * 255.0 + 0.5)
-        local g8 <const> = math.floor(g01 * 255.0 + 0.5)
-        local b8 <const> = math.floor(b01 * 255.0 + 0.5)
-
-        -- print(string.format(
-        --     "r8: %d, g8: %d, b8: %d",
-        --     r8, g8, b8))
-
-        ctx.color = Color { r = r8, g = g8, b = b8, a = 255 }
-        ctx:fillRect(Rectangle(0, 0, ctx.width, ctx.height))
-    end
+    enabled = false,
 }
 
 dlgHex:newrow { always = false }
 
-dlgHex:label {
-    id = "bitDepthsNote",
-    text = defaults.bitDepthsNote
-}
+dlgHex:label { id = "rNote", text = "" }
+dlgHex:newrow { always = false }
+dlgHex:label { id = "gNote", text = "" }
+dlgHex:newrow { always = false }
+dlgHex:label { id = "bNote", text = "" }
+dlgHex:newrow { always = false }
 
 dlgHex:entry {
     id = "hexCode",
@@ -1600,19 +1592,13 @@ dlgHex:entry {
     onchange = function()
         local args <const> = dlgHex.data
         local hexCode <const> = args.hexCode --[[@as string]]
-
         local isValid <const>,
         r01 <const>,
         g01 <const>,
         b01 <const> = hexStrToRgb(hexCode)
-
         if not isValid then return end
-
-        active.rPreview = r01
-        active.gPreview = g01
-        active.bPreview = b01
-
-        dlgHex:repaint()
+        local t01 <const> = active.alphaFore
+        updateHexDisplay(r01, g01, b01, t01)
     end
 }
 
