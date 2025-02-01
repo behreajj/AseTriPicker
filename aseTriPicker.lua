@@ -150,7 +150,7 @@ local active <const> = {
     mouseDownRing = false,
     mouseDownTri = false,
 
-    rPreview = 1.0,
+    rPreview = 0.0,
     gPreview = 0.0,
     bPreview = 0.0,
 }
@@ -1496,10 +1496,6 @@ dlgMain:button {
         local redFore <const> = active.redFore
         local greenFore <const> = active.greenFore
         local blueFore <const> = active.blueFore
-
-        active.rPreview = redFore
-        active.gPreview = greenFore
-        active.bPreview = blueFore
 
         local r01 <const> = redFore
         local g01 <const> = greenFore
