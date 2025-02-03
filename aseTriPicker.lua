@@ -336,17 +336,17 @@ local function onPaintAlpha(event)
     active.wCanvasAlpha = wCanvas
     active.hCanvasAlpha = hCanvas
 
-    local useBack <const> = active.useBack
-    local redActive <const> = useBack
+    local isBackActive <const> = active.isBackActive
+    local redActive <const> = isBackActive
         and active.redBack
         or active.redFore
-    local greenActive <const> = useBack
+    local greenActive <const> = isBackActive
         and active.greenBack
         or active.greenFore
-    local blueActive <const> = useBack
+    local blueActive <const> = isBackActive
         and active.blueBack
         or active.blueFore
-    local alphaActive <const> = useBack
+    local alphaActive <const> = isBackActive
         and active.alphaBack
         or active.alphaFore
 
@@ -1065,22 +1065,17 @@ local function onMouseMoveAlpha(event)
         and 1.0
         or xCanvas / (wCanvas - 1.0)
 
-    local useBack <const> = active.useBack
-    active[useBack and "alphaBack" or "alphaFore"] = xNrm
+    -- Because the alpha bar and main canvas are separate, back
+    -- would never be active unless you made a separate onMouseDownAlpha
+    -- that set it as such.
+    active["alphaFore"] = xNrm
 
-    local r01 <const> = useBack
-        and active.redBack
-        or active.redFore
-    local g01 <const> = useBack
-        and active.greenBack
-        or active.greenFore
-    local b01 <const> = useBack
-        and active.blueBack
-        or active.blueFore
-    local t01 <const> = useBack
-        and active.alphaBack
-        or active.alphaFore
-    updateQuantizedRgb(r01, g01, b01, t01, useBack)
+    local r01 <const> = active.redFore
+    local g01 <const> = active.greenFore
+    local b01 <const> = active.blueFore
+    local t01 <const> = active.alphaFore
+
+    updateQuantizedRgb(r01, g01, b01, t01, false)
     dlgMain:repaint()
 end
 
@@ -1260,10 +1255,6 @@ local function onMouseUpMain(event)
     local xMouseUp <const> = event.x
     local yMouseUp <const> = event.y
 
-    active.mouseDownRing = false
-    active.mouseDownTri = false
-    active.isBackActive = false
-
     local swatchSize <const> = defaults.swatchSize
     local swatchMargin <const> = defaults.swatchMargin
     local wCanvas <const> = active.wCanvasMain
@@ -1345,7 +1336,18 @@ local function onMouseUpMain(event)
             a = bgt8
         }
         app.command.SwitchColors()
+    elseif active.isBackActive
+        and (active.mouseDownRing
+            or active.mouseDownTri) then
+        active.isBackActive = false
+        active.triggerTriRepaint = true
+        active.triggerAlphaRepaint = true
+        dlgMain:repaint()
     end
+
+    active.mouseDownRing = false
+    active.mouseDownTri = false
+    active.isBackActive = false
 end
 
 -- region Main Dialog
