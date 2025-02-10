@@ -1214,7 +1214,10 @@ end
 
 ---@param event MouseEvent
 local function onMouseDownAlpha(event)
-    if event.button == MouseButton.RIGHT then
+    local isRightClick <const> = event.button == MouseButton.RIGHT
+        or (event.button == MouseButton.LEFT
+            and event.ctrlKey)
+    if isRightClick then
         active.isBackActive = true
     end
     onMouseMoveAlpha(event)
@@ -1242,17 +1245,20 @@ local function onMouseDownMain(event)
     local xNorm <const> = xDelta * rCanvasInv
     local yNorm <const> = yDelta * rCanvasInv
 
+    local isRightClick <const> = event.button == MouseButton.RIGHT
+        or (event.button == MouseButton.LEFT
+            and event.ctrlKey)
     local sqMag <const> = xNorm * xNorm + yNorm * yNorm
     if (not active.mouseDownTri) and (sqMag >= sqRie and sqMag <= 1.0) then
         active.mouseDownRing = true
-        if event.button == MouseButton.RIGHT then
+        if isRightClick then
             active.isBackActive = true
         end
     end
 
     if (not active.mouseDownRing) and (sqMag < sqRie) then
         active.mouseDownTri = true
-        if event.button == MouseButton.RIGHT then
+        if isRightClick then
             active.isBackActive = true
         end
     end
