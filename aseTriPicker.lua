@@ -416,8 +416,8 @@ local function onPaintAlpha(event)
         + 0.59 * greenActive
         + 0.11 * blueActive)
     local reticleColor <const> = relLum < 0.5 and
-        Color(255, 255, 255, 255)
-        or Color(0, 0, 0, 255)
+        Color { r = 255, g = 255, b = 255, a = 255 }
+        or Color { r = 0, g = 0, b = 0, a = 255 }
     ctx.color = reticleColor
     ctx.strokeWidth = defaults.reticleStroke
     ctx:strokeRect(Rectangle(
@@ -1068,14 +1068,16 @@ local function onMouseMoveAlpha(event)
     -- Because the alpha bar and main canvas are separate, back
     -- would never be active unless you made a separate onMouseDownAlpha
     -- that set it as such.
-    active["alphaFore"] = xNrm
+    local isBackActive <const> = active.isBackActive
+    active[isBackActive and "alphaBack" or "alphaFore"] = xNrm
 
-    local r01 <const> = active.redFore
-    local g01 <const> = active.greenFore
-    local b01 <const> = active.blueFore
-    local t01 <const> = active.alphaFore
+    local r01 <const> = isBackActive and active.redBack or active.redFore
+    local g01 <const> = isBackActive and active.greenBack or active.greenFore
+    local b01 <const> = isBackActive and active.blueBack or active.blueFore
+    local t01 <const> = isBackActive and active.alphaBack or active.alphaFore
 
-    updateQuantizedRgb(r01, g01, b01, t01, false)
+    updateQuantizedRgb(r01, g01, b01, t01, isBackActive)
+    if isBackActive then active.triggerAlphaRepaint = true end
     dlgMain:repaint()
 end
 
@@ -1211,6 +1213,14 @@ local function onMouseMoveMain(event)
 end
 
 ---@param event MouseEvent
+local function onMouseDownAlpha(event)
+    if event.button == MouseButton.RIGHT then
+        active.isBackActive = true
+    end
+    onMouseMoveAlpha(event)
+end
+
+---@param event MouseEvent
 local function onMouseDownMain(event)
     local xMouseDown <const> = event.x
     local yMouseDown <const> = event.y
@@ -1248,6 +1258,15 @@ local function onMouseDownMain(event)
     end
 
     onMouseMoveMain(event)
+end
+
+---@param event MouseEvent
+local function onMouseUpAlpha(event)
+    if active.isBackActive then
+        active.isBackActive = false
+        active.triggerAlphaRepaint = true
+        dlgMain:repaint()
+    end
 end
 
 ---@param event MouseEvent
@@ -1374,8 +1393,9 @@ dlgMain:canvas {
     visible = defaults.showAlphaBar,
     width = defaults.wCanvas,
     height = defaults.hCanvasAlpha,
-    onmousedown = onMouseMoveAlpha,
+    onmousedown = onMouseDownAlpha,
     onmousemove = onMouseMoveAlpha,
+    onmouseup = onMouseUpAlpha,
     onpaint = onPaintAlpha,
     hexpand = true,
     vexpand = false,
