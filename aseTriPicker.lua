@@ -664,8 +664,8 @@ local function onPaintMain(event)
     local reticleSize <const> = defaults.reticleSize
     local reticleHalf <const> = reticleSize * 0.5
 
-    ctx.color = valActive < 0.5 and Color(255, 255, 255, 255)
-        or Color(0, 0, 0, 255)
+    ctx.color = valActive < 0.5 and Color { r = 255, g = 255, b = 255, a = 255 }
+        or Color { r = 0, g = 0, b = 0, a = 255 }
     ctx.strokeWidth = defaults.reticleStroke
     ctx:strokeRect(Rectangle(
         math.floor(xReticle - reticleHalf),
@@ -678,7 +678,7 @@ local function onPaintMain(event)
         local sina <const> = math.sin(thetaActive - angOffsetRadians)
         local ringInner = rCanvas * ringInEdge
         ctx.strokeWidth = 3
-        ctx.color = Color(255, 255, 255, 255)
+        ctx.color = Color { r = 255, g = 255, b = 255, a = 255 }
         ctx:moveTo(xCenter + ringInner * cosa, yCenter - ringInner * sina)
         ctx:lineTo(xCenter + rCanvas * cosa, yCenter - rCanvas * sina)
         ctx:stroke()
@@ -953,9 +953,9 @@ local function updateHexDisplay(r01, g01, b01, t01)
     local gMax <const> = active.gMax
     local bMax <const> = active.bMax
 
-    local r8 <const> = math.floor(r01 * 255.0 + 0.5)
-    local g8 <const> = math.floor(g01 * 255.0 + 0.5)
-    local b8 <const> = math.floor(b01 * 255.0 + 0.5)
+    local r8 <const> = math.floor(r01 * 255 + 0.5)
+    local g8 <const> = math.floor(g01 * 255 + 0.5)
+    local b8 <const> = math.floor(b01 * 255 + 0.5)
 
     local rx <const> = math.floor(r01 * rMax + 0.5)
     local gx <const> = math.floor(g01 * gMax + 0.5)
