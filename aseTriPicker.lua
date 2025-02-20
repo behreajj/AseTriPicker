@@ -1527,11 +1527,11 @@ dlgMain:button {
                 t8 = aseColor.alpha
             end
         elseif colorMode == ColorMode.GRAY then
-            local v8 <const> = pixel >> 0x00 & 0xff
+            local v8 <const> = pixel & 0xff
             r8, g8, b8 = v8, v8, v8
             t8 = pixel >> 0x08 & 0xff
         else
-            r8 = pixel >> 0x00 & 0xff
+            r8 = pixel & 0xff
             g8 = pixel >> 0x08 & 0xff
             b8 = pixel >> 0x10 & 0xff
             t8 = pixel >> 0x18 & 0xff
