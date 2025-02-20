@@ -376,15 +376,11 @@ local function onPaintAlpha(event)
             end
 
             local ucCheck <const> = (1.0 - t) * cCheck
-            local rMix <const> = ucCheck + t * redActive
-            local gMix <const> = ucCheck + t * greenActive
-            local bMix <const> = ucCheck + t * blueActive
-
-            local r8 <const> = floor(rMix * 255 + 0.5)
-            local g8 <const> = floor(gMix * 255 + 0.5)
-            local b8 <const> = floor(bMix * 255 + 0.5)
-
-            local byteStr <const> = strpack("B B B B", r8, g8, b8, 255)
+            local byteStr <const> = strpack("B B B B",
+                floor((ucCheck + t * redActive) * 255 + 0.5),
+                floor((ucCheck + t * greenActive) * 255 + 0.5),
+                floor((ucCheck + t * blueActive) * 255 + 0.5),
+                255)
 
             i = i + 1
             byteStrs[i] = byteStr
