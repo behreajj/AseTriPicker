@@ -60,4 +60,6 @@ To modify these scripts, see Aseprite's [API Reference](https://github.com/asepr
 
 ## Issues
 
-This script was tested in Aseprite version 1.3.13-beta1 on Windows 11. Its user interface elements were tested with 100% screen scaling and 200% UI scaling. Please report issues in the issues section on Github.
+This script was tested in Aseprite version 1.3.14-beta1 on Windows 11. Its user interface elements were tested with 100% screen scaling and 200% UI scaling. Please report issues in the issues section on Github.
+
+🇹🇼 🇺🇦
