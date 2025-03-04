@@ -1057,9 +1057,7 @@ local function onMouseMoveAlpha(event)
     if wCanvas <= 1 or hCanvas <= 1 then return end
 
     local xCanvas <const> = math.min(math.max(event.x, 0), wCanvas - 1)
-    local xNrm <const> = event.ctrlKey
-        and 1.0
-        or xCanvas / (wCanvas - 1.0)
+    local xNrm <const> = xCanvas / (wCanvas - 1.0)
 
     -- Because the alpha bar and main canvas are separate, back
     -- would never be active unless you made a separate onMouseDownAlpha
