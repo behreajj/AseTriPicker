@@ -1209,8 +1209,6 @@ end
 ---@param event MouseEvent
 local function onMouseDownAlpha(event)
     local isRightClick <const> = event.button == MouseButton.RIGHT
-        or (event.button == MouseButton.LEFT
-            and event.ctrlKey)
     if isRightClick then
         active.isBackActive = true
     end
@@ -1240,8 +1238,6 @@ local function onMouseDownMain(event)
     local yNorm <const> = yDelta * rCanvasInv
 
     local isRightClick <const> = event.button == MouseButton.RIGHT
-        or (event.button == MouseButton.LEFT
-            and event.ctrlKey)
     local sqMag <const> = xNorm * xNorm + yNorm * yNorm
     if (not active.mouseDownTri) and (sqMag >= sqRie and sqMag <= 1.0) then
         active.mouseDownRing = true
