@@ -1071,7 +1071,10 @@ local function onMouseMoveAlpha(event)
     local t01 <const> = isBackActive and active.alphaBack or active.alphaFore
 
     updateQuantizedRgb(r01, g01, b01, t01, isBackActive)
-    if isBackActive then active.triggerAlphaRepaint = true end
+    if isBackActive then
+        active.triggerAlphaRepaint = true
+        active.triggerTriRepaint = true
+    end
     dlgMain:repaint()
 end
 
@@ -1261,6 +1264,7 @@ local function onMouseUpAlpha(event)
     if active.isBackActive then
         active.isBackActive = false
         active.triggerAlphaRepaint = true
+        active.triggerTriRepaint = true
         dlgMain:repaint()
     end
 end
