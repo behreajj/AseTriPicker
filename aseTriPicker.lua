@@ -1711,7 +1711,8 @@ dlgOptions:newrow { always = false }
 dlgOptions:slider {
     id = "ringInEdge",
     label = "Weight:",
-    value = math.floor((1.0 - defaults.ringInEdge) * 100.0 + 0.5),
+    value = math.floor(
+        (1.0 - defaults.ringInEdge) * 100.0 + 0.5),
     min = 5,
     max = 33,
     focus = false
@@ -1889,6 +1890,33 @@ dlgOptions:button {
     text = "&CANCEL",
     focus = true,
     onclick = function()
+        dlgOptions:modify {
+            id = "degreesOffset",
+            value = math.floor(-math.deg(
+                active.angOffsetRadians) % 360 + 0.5)
+        }
+
+        dlgOptions:modify {
+            id = "ringInEdge",
+            value = math.floor(
+                (1.0 - active.ringInEdge) * 100.0 + 0.5)
+        }
+
+        dlgOptions:modify {
+            id = "lockTriRot",
+            selected = active.lockTriRot
+        }
+
+        dlgOptions:modify {
+            id = "lockOffset",
+            value = math.floor(math.deg(
+                active.angLockRadians) + 0.5),
+        }
+
+        dlgOptions:modify { id = "rBitDepth", value = active.rBitDepth }
+        dlgOptions:modify { id = "gBitDepth", value = active.gBitDepth }
+        dlgOptions:modify { id = "bBitDepth", value = active.bBitDepth }
+
         dlgOptions:close()
     end
 }
