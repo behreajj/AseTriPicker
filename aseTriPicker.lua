@@ -1726,6 +1726,7 @@ dlgOptions:check {
     text = "Lock",
     selected = defaults.lockTriRot,
     focus = false,
+    hexpand = false,
     onclick = function()
         local args <const> = dlgOptions.data
         local lockTriRot <const> = args.lockTriRot --[[@as boolean]]
@@ -1784,21 +1785,24 @@ dlgOptions:check {
     label = "Buttons:",
     text = "Fore",
     selected = defaults.showForeButton,
-    focus = false
+    focus = false,
+    hexpand = false,
 }
 
 dlgOptions:check {
     id = "showBackButton",
     text = "Back",
     selected = defaults.showBackButton,
-    focus = false
+    focus = false,
+    hexpand = false,
 }
 
 dlgOptions:check {
     id = "showExitButton",
     text = "X",
     selected = defaults.showExitButton,
-    focus = false
+    focus = false,
+    hexpand = false,
 }
 
 dlgOptions:newrow { always = false }
@@ -1807,14 +1811,16 @@ dlgOptions:check {
     id = "showSampleButton",
     text = "Sample",
     selected = defaults.showSampleButton,
-    focus = false
+    focus = false,
+    hexpand = false,
 }
 
 dlgOptions:check {
     id = "showHexButton",
     text = "Hex",
     selected = defaults.showHexButton,
-    focus = false
+    focus = false,
+    hexpand = false,
 }
 
 dlgOptions:check {
@@ -1822,7 +1828,8 @@ dlgOptions:check {
     label = "Bars:",
     text = "Alpha",
     selected = defaults.showAlphaBar,
-    focus = false
+    focus = false,
+    hexpand = false,
 }
 
 dlgOptions:newrow { always = false }
