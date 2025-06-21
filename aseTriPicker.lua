@@ -38,6 +38,7 @@ local defaults <const> = {
     showAlphaBar = false,
     showForeButton = true,
     showBackButton = true,
+    showPalAppendButton = false,
     showSampleButton = false,
     showHexButton = false,
     showExitButton = true,
@@ -62,6 +63,7 @@ local defaults <const> = {
 
     foreKey = "&FORE",
     backKey = "&BACK",
+    palAppendKey = "A&PPEND",
     sampleKey = "S&AMPLE",
     hexKey = "&HEX",
     optionsKey = "&+",
@@ -1456,6 +1458,47 @@ dlgMain:button {
 }
 
 dlgMain:button {
+    id = "palAppendButton",
+    text = defaults.palAppendKey,
+    focus = false,
+    visible = defaults.showPalAppendButton,
+    onclick = function()
+        local sprite <const> = app.sprite
+        if not sprite then return end
+
+        local activeFrIdx = 1
+        local activeFrObj <const> = app.frame
+        if activeFrObj then
+            activeFrIdx = activeFrObj.frameNumber
+        end
+
+        local palettes <const> = sprite.palettes
+        local lenPalettes <const> = #palettes
+        local palIdx <const> = (activeFrIdx >= 1
+                and activeFrIdx <= lenPalettes)
+            and activeFrIdx
+            or 1
+        local palette <const> = palettes[palIdx]
+        local lenPalette <const> = #palette
+
+        local showAlphaBar <const> = active.showAlphaBar
+        local fgt8 = 255
+        if showAlphaBar then
+            fgt8 = math.floor(active.alphaFore * 255 + 0.5)
+        end
+
+        palette:resize(lenPalette + 1)
+        palette:setColor(lenPalette, Color {
+            r = math.floor(active.redFore * 255 + 0.5),
+            g = math.floor(active.greenFore * 255 + 0.5),
+            b = math.floor(active.blueFore * 255 + 0.5),
+            a = fgt8
+        })
+        app.refresh()
+    end
+}
+
+dlgMain:button {
     id = "sampleButton",
     text = defaults.sampleKey,
     focus = false,
@@ -1808,6 +1851,14 @@ dlgOptions:check {
 dlgOptions:newrow { always = false }
 
 dlgOptions:check {
+    id = "showPalAppendButton",
+    text = "Append",
+    selected = defaults.showPalAppendButton,
+    focus = false,
+    hexpand = false,
+}
+
+dlgOptions:check {
     id = "showSampleButton",
     text = "Sample",
     selected = defaults.showSampleButton,
@@ -1849,6 +1900,7 @@ dlgOptions:button {
         local showFore <const> = args.showForeButton --[[@as boolean]]
         local showBack <const> = args.showBackButton --[[@as boolean]]
         local showExit <const> = args.showExitButton --[[@as boolean]]
+        local showPalAppend <const> = args.showPalAppendButton --[[@as boolean]]
         local showSample <const> = args.showSampleButton --[[@as boolean]]
         local showHex <const> = args.showHexButton --[[@as boolean]]
         local showAlphaBar <const> = args.showAlphaBar --[[@as boolean]]
@@ -1883,6 +1935,7 @@ dlgOptions:button {
 
         dlgMain:modify { id = "getForeButton", visible = showFore }
         dlgMain:modify { id = "getBackButton", visible = showBack }
+        dlgMain:modify { id = "palAppendButton", visible = showPalAppend }
         dlgMain:modify { id = "sampleButton", visible = showSample }
         dlgMain:modify { id = "hexButton", visible = showHex }
         dlgMain:modify { id = "exitMainButton", visible = showExit }
