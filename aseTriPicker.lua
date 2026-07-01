@@ -983,14 +983,10 @@ local function updateHexDisplay(r01, g01, b01, t01)
         text = string.format("B: %d / %d", bx, bMax)
     }
 
-    -- Color widget cannot be disabled, otherwise the color
-    -- is shown as gray.
-    -- dlgHex:modify { id = "previewColor", enabled = true }
     dlgHex:modify {
         id = "previewColor",
-        color = Color { r = r8, g = g8, b = b8, a = t8 }
+        colors = { Color { r = r8, g = g8, b = b8, a = t8 } }
     }
-    -- dlgHex:modify { id = "previewColor", enabled = false }
 end
 
 ---@param event KeyEvent
@@ -1638,16 +1634,13 @@ dlgMain:button {
 
 -- region Hex Menu
 
-dlgHex:color {
+dlgHex:shades {
     id = "previewColor",
-    color = Color { r = 0, g = 0, b = 0, a = 0 },
+    colors = { Color { r = 0, g = 0, b = 0, a = 0 } },
+    mode = "sort",
     focus = false,
     vexpand = true,
     hexpand = true,
-    -- This has to be enabled in order to display
-    -- the color correctly. When it is disabled,
-    -- the color is gray.
-    enabled = true,
 }
 
 dlgHex:newrow { always = false }
