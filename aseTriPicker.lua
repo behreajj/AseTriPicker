@@ -983,12 +983,14 @@ local function updateHexDisplay(r01, g01, b01, t01)
         text = string.format("B: %d / %d", bx, bMax)
     }
 
-    dlgHex:modify { id = "previewColor", enabled = true }
+    -- Color widget cannot be disabled, otherwise the color
+    -- is shown as gray.
+    -- dlgHex:modify { id = "previewColor", enabled = true }
     dlgHex:modify {
         id = "previewColor",
         color = Color { r = r8, g = g8, b = b8, a = t8 }
     }
-    dlgHex:modify { id = "previewColor", enabled = false }
+    -- dlgHex:modify { id = "previewColor", enabled = false }
 end
 
 ---@param event KeyEvent
@@ -1642,7 +1644,10 @@ dlgHex:color {
     focus = false,
     vexpand = true,
     hexpand = true,
-    enabled = false,
+    -- This has to be enabled in order to display
+    -- the color correctly. When it is disabled,
+    -- the color is gray.
+    enabled = true,
 }
 
 dlgHex:newrow { always = false }
